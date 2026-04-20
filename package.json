@@ -7,13 +7,17 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev": "tsc --watch",
+    "cli": "npm run build && tsx src/index.ts",
     "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "tsx": "4.21.0",
+    "typescript": "6.0.3"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "8.4.2"
   }
 }

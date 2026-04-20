@@ -1,50 +1,45 @@
-# TypeScript Workout Project 🏋️‍♂️
+# Routine Management CLI
 
-Este proyecto es una aplicación de gestión de rutinas de entrenamiento desarrollada en TypeScript, diseñada para demostrar principios de **SDD (Spec-Driven Development)**, **SOLID** y **DRY**.
+A command-line interface (CLI) application to manage users, exercises, and fitness routines. Built with TypeScript and Node.js.
 
-## 🚀 Cómo ejecutar el proyecto
+## Architecture
 
-### Requisitos previos
-- Node.js instalado.
-- npm (Node Package Manager).
+The project follows SOLID and DRY principles, organized into three main layers:
+1. **Data Layer (Repositories)**: In-memory storage for users and exercises. Data is reset upon application restart.
+2. **Service Layer (Business Logic)**: Handles the creation and management of entities (`UserService`, `ExerciseService`, `RoutineService`).
+3. **Presentation Layer (CLI)**: Interactive prompts using `@inquirer/prompts` to interact with the user.
 
-### Instalación
-1. Clona o descarga el proyecto.
-2. Instala las dependencias necesarias:
-   ```bash
-   npm install
-   ```
+## Prerequisites
 
-### Comandos de ejecución
+- Node.js
+- npm
 
-#### Modo Desarrollo (Recomendado)
-Para ejecutar el código directamente sin generar archivos compilados y ver los resultados en la terminal:
+## Installation
+
+1. Install dependencies:
 ```bash
-npx tsx src/index.ts
+npm install
 ```
 
-#### Compilación y Ejecución Tradicional
-Si prefieres compilar el proyecto a JavaScript:
-1. Compilar el código:
-   ```bash
-   npm run build
-   ```
-2. Ejecutar el código compilado:
-   ```bash
-   node dist/index.js
-   ```
+## Usage
 
-## 📂 Estructura del Proyecto
+To run the interactive CLI, use the following command:
 
-- `src/index.ts`: Punto de entrada principal con la lógica de usuario y rutinas.
-- `src/types/`: Definiciones de tipos e interfaces del sistema.
-  - `ejercicio.ts`: Estructura de los ejercicios.
-  - `rutina.ts`: Lógica de días de la semana y planes.
-  - `usuario.ts`: Perfil del usuario con restricciones de nivel.
-- `dist/`: Carpeta generada con el código JavaScript compilado.
+```bash
+npm run cli
+```
 
-## ✨ Características implementadas
-- **Type Safety**: Uso de `as const`, `Partial`, `Record` y tipos mapeados.
-- **Cálculos Automáticos**: Calorías diarias, semanales y promedios.
-- **Validaciones**: Niveles de usuario restringidos (principiante, intermedio, avanzado).
-- **Reportes**: Formato visual limpio en consola para el perfil de usuario.
+This command will automatically compile the TypeScript code and start the interactive menu.
+
+### Available Commands
+
+- `npm run build`: Compiles the TypeScript code to JavaScript.
+- `npm run cli`: Compiles and runs the interactive CLI menu.
+- `npm start`: Runs the compiled JavaScript code from the `dist` folder.
+
+## Features
+
+- **Add User**: Create a new user profile with personal details and fitness goals.
+- **Add Exercise**: Add a new exercise to the catalog with duration and calories.
+- **Create Routine**: Assign an exercise to a user's weekly routine for a specific day.
+- **View Profile**: Display a user's profile, including their weekly routine, total calories, and most intense day.
