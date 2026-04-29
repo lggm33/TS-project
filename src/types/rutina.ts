@@ -1,7 +1,8 @@
 import type { Ejercicio } from "./ejercicio.js";
+import type { RutinaId } from "./identificadores.js";
 
 interface Rutina_Diaria {
-  id: number;
+  id: RutinaId;
   dia: string;
   ejercicio: Ejercicio;
 }
@@ -19,7 +20,7 @@ const DiaSemana = {
 type DiaSemanaType = (typeof DiaSemana)[keyof typeof DiaSemana];
 
 interface Rutina_Semanal {
-  id: number;
+  id: RutinaId;
   plan: Partial<Record<DiaSemanaType, Rutina_Diaria>>;
 }
 
