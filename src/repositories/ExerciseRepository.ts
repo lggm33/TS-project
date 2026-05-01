@@ -1,8 +1,9 @@
 import type { Ejercicio } from "../types/ejercicio.js";
+import type { EjercicioId } from "../types/identificadores.js";
 
 export interface IExerciseRepository {
   save(exercise: Ejercicio): void;
-  findById(id: number): Ejercicio | undefined;
+  findById(id: EjercicioId): Ejercicio | undefined;
   findAll(): Ejercicio[];
 }
 
@@ -13,8 +14,8 @@ export class InMemoryExerciseRepository implements IExerciseRepository {
     this.exercises.push(exercise);
   }
 
-  public findById(id: number): Ejercicio | undefined {
-    return this.exercises.find(e => e.id === id);
+  public findById(id: EjercicioId): Ejercicio | undefined {
+    return this.exercises.find((e) => e.id === id);
   }
 
   public findAll(): Ejercicio[] {
