@@ -1,32 +1,32 @@
 import type {
-  Usuario,
-  DatosPersonales,
-  Membresia,
-} from "../types/usuario.js";
-import type { UsuarioId, RutinaId } from "../types/identificadores.js";
+  User,
+  PersonalData,
+  Membership,
+} from "../types/user.js";
+import type { UserId, RoutineId } from "../types/identifiers.js";
 import type { IUserRepository } from "../repositories/UserRepository.js";
 
-export interface NuevoUsuarioInput {
-  personal: DatosPersonales;
-  membresia: Membresia;
+export interface NewUserInput {
+  personal: PersonalData;
+  membership: Membership;
 }
 
 export class UserService {
   private repository: IUserRepository;
-  private currentId: UsuarioId = 1;
+  private currentId: UserId = 1;
 
   constructor(repository: IUserRepository) {
     this.repository = repository;
   }
 
-  public createUser(data: NuevoUsuarioInput): Usuario {
+  public createUser(data: NewUserInput): User {
     const id = this.nextId();
-    const newUser: Usuario = {
+    const newUser: User = {
       id,
       personal: data.personal,
-      membresia: data.membresia,
-      rutina: {
-        id: this.buildRutinaId(),
+      membership: data.membership,
+      routine: {
+        id: this.buildRoutineId(),
         plan: {},
       },
     };
@@ -34,25 +34,25 @@ export class UserService {
     return newUser;
   }
 
-  public getUser(id: UsuarioId): Usuario | undefined {
+  public getUser(id: UserId): User | undefined {
     return this.repository.findById(id);
   }
 
-  public getAllUsers(): Usuario[] {
+  public getAllUsers(): User[] {
     return this.repository.findAll();
   }
 
-  public updateUser(user: Usuario): void {
+  public updateUser(user: User): void {
     this.repository.update(user);
   }
 
-  private nextId(): UsuarioId {
+  private nextId(): UserId {
     const id = this.currentId;
     this.currentId += 1;
     return id;
   }
 
-  private buildRutinaId(): RutinaId {
+  private buildRoutineId(): RoutineId {
     return Date.now();
   }
 }

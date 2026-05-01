@@ -1,41 +1,41 @@
-import { DiaSemana } from "./rutina.js";
-import { CategoriaEjercicio } from "./ejercicio.js";
-import { NivelUsuario, PlanMembresia } from "./usuario.js";
-import type { Rutina_Semanal, Rutina_Diaria, DiaSemanaType } from "./rutina.js";
+import { WeekDay } from "./routine.js";
+import { ExerciseCategory } from "./exercise.js";
+import { UserLevel, MembershipPlan } from "./user.js";
+import type { WeeklyRoutine, DailyRoutine, WeekDayType } from "./routine.js";
 import type {
-  Usuario,
-  DatosPersonales,
-  Membresia,
-  NivelUsuarioType,
-  PlanMembresiaType,
-} from "./usuario.js";
+  User,
+  PersonalData,
+  Membership,
+  UserLevelType,
+  MembershipPlanType,
+} from "./user.js";
 import type {
-  Ejercicio,
-  EjercicioBase,
-  EjercicioCardio,
-  EjercicioFuerza,
-  EjercicioFlexibilidad,
-  CategoriaEjercicioType,
-} from "./ejercicio.js";
-import type { EjercicioId, UsuarioId, RutinaId } from "./identificadores.js";
+  Exercise,
+  BaseExercise,
+  CardioExercise,
+  StrengthExercise,
+  FlexibilityExercise,
+  ExerciseCategoryType,
+} from "./exercise.js";
+import type { ExerciseId, UserId, RoutineId } from "./identifiers.js";
 
-export { DiaSemana, CategoriaEjercicio, NivelUsuario, PlanMembresia };
+export { WeekDay, ExerciseCategory, UserLevel, MembershipPlan };
 export type {
-  Ejercicio,
-  EjercicioBase,
-  EjercicioCardio,
-  EjercicioFuerza,
-  EjercicioFlexibilidad,
-  CategoriaEjercicioType,
-  Rutina_Semanal,
-  Rutina_Diaria,
-  DiaSemanaType,
-  Usuario,
-  DatosPersonales,
-  Membresia,
-  NivelUsuarioType,
-  PlanMembresiaType,
-  EjercicioId,
-  UsuarioId,
-  RutinaId,
+  Exercise,
+  BaseExercise,
+  CardioExercise,
+  StrengthExercise,
+  FlexibilityExercise,
+  ExerciseCategoryType,
+  WeeklyRoutine,
+  DailyRoutine,
+  WeekDayType,
+  User,
+  PersonalData,
+  Membership,
+  UserLevelType,
+  MembershipPlanType,
+  ExerciseId,
+  UserId,
+  RoutineId,
 };

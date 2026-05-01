@@ -1,24 +1,24 @@
-import type { Ejercicio } from "../types/ejercicio.js";
-import type { EjercicioId } from "../types/identificadores.js";
+import type { Exercise } from "../types/exercise.js";
+import type { ExerciseId } from "../types/identifiers.js";
 
 export interface IExerciseRepository {
-  save(exercise: Ejercicio): void;
-  findById(id: EjercicioId): Ejercicio | undefined;
-  findAll(): Ejercicio[];
+  save(exercise: Exercise): void;
+  findById(id: ExerciseId): Exercise | undefined;
+  findAll(): Exercise[];
 }
 
 export class InMemoryExerciseRepository implements IExerciseRepository {
-  private exercises: Ejercicio[] = [];
+  private exercises: Exercise[] = [];
 
-  public save(exercise: Ejercicio): void {
+  public save(exercise: Exercise): void {
     this.exercises.push(exercise);
   }
 
-  public findById(id: EjercicioId): Ejercicio | undefined {
+  public findById(id: ExerciseId): Exercise | undefined {
     return this.exercises.find((e) => e.id === id);
   }
 
-  public findAll(): Ejercicio[] {
+  public findAll(): Exercise[] {
     return [...this.exercises];
   }
 }

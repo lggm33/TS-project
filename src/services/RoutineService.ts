@@ -1,12 +1,12 @@
 import type { UserService } from "./UserService.js";
 import type { ExerciseService } from "./ExerciseService.js";
-import type { DiaSemanaType, Rutina_Diaria } from "../types/rutina.js";
-import type { UsuarioId, EjercicioId, RutinaId } from "../types/identificadores.js";
+import type { WeekDayType, DailyRoutine } from "../types/routine.js";
+import type { UserId, ExerciseId, RoutineId } from "../types/identifiers.js";
 
 export class RoutineService {
   private userService: UserService;
   private exerciseService: ExerciseService;
-  private currentRoutineId: RutinaId = 1;
+  private currentRoutineId: RoutineId = 1;
 
   constructor(userService: UserService, exerciseService: ExerciseService) {
     this.userService = userService;
@@ -14,9 +14,9 @@ export class RoutineService {
   }
 
   public addExerciseToRoutine(
-    userId: UsuarioId,
-    exerciseId: EjercicioId,
-    day: DiaSemanaType,
+    userId: UserId,
+    exerciseId: ExerciseId,
+    day: WeekDayType,
   ): boolean {
     const user = this.userService.getUser(userId);
     const exercise = this.exerciseService.getExercise(exerciseId);
@@ -25,19 +25,19 @@ export class RoutineService {
       return false;
     }
 
-    const rutinaDiaria: Rutina_Diaria = {
+    const dailyRoutine: DailyRoutine = {
       id: this.nextRoutineId(),
-      dia: day,
-      ejercicio: exercise,
+      day: day,
+      exercise: exercise,
     };
 
-    user.rutina.plan[day] = rutinaDiaria;
+    user.routine.plan[day] = dailyRoutine;
     this.userService.updateUser(user);
 
     return true;
   }
 
-  private nextRoutineId(): RutinaId {
+  private nextRoutineId(): RoutineId {
     const id = this.currentRoutineId;
     this.currentRoutineId += 1;
     return id;

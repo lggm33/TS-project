@@ -1,59 +1,59 @@
-import type { Ejercicio } from "../types/ejercicio.js";
-import type { Usuario, NivelUsuarioType } from "../types/usuario.js";
+import type { Exercise } from "../types/exercise.js";
+import type { User, UserLevelType } from "../types/user.js";
 import type { CategorySummary } from "../utils/calculations.js";
 import {
-  agruparPorCategoria,
-  sumarPorCategoria,
-  contarPorCategoria,
+  groupByCategory,
+  sumByCategory,
+  countByCategory,
 } from "../utils/calculations.js";
 import {
-  describirEjercicio,
-  obtenerEtiquetaCategoria,
+  describeExercise,
+  getCategoryLabel,
 } from "../utils/exerciseFormatters.js";
 
-const NIVEL_USUARIO_DISPLAY: Readonly<Record<NivelUsuarioType, string>> = {
+const USER_LEVEL_DISPLAY: Readonly<Record<UserLevelType, string>> = {
   principiante: 'beginner',
   intermedio: 'intermediate',
   avanzado: 'advanced',
 };
 
-const SEPARADOR_TOP = '══════════════════════════════════';
-const SEPARADOR_INNER = '──────────────────────────────────';
+const TOP_SEPARATOR = '══════════════════════════════════';
+const INNER_SEPARATOR = '──────────────────────────────────';
 
 export class CatalogPresenter {
-  public static printCatalog(exercises: Ejercicio[]): void {
-    console.log(`\n📊 Catálogo de Ejercicios ${SEPARADOR_TOP}`);
+  public static printCatalog(exercises: Exercise[]): void {
+    console.log(`\n📊 Catálogo de Ejercicios ${TOP_SEPARATOR}`);
 
     if (exercises.length === 0) {
       console.log('   (sin ejercicios registrados)');
-      console.log(SEPARADOR_TOP);
+      console.log(TOP_SEPARATOR);
       return;
     }
 
-    const groups = agruparPorCategoria(exercises);
-    const totals = sumarPorCategoria(exercises);
+    const groups = groupByCategory(exercises);
+    const totals = sumByCategory(exercises);
 
     CatalogPresenter.printGroup(groups.cardio, totals.cardio);
-    CatalogPresenter.printGroup(groups.fuerza, totals.fuerza);
-    CatalogPresenter.printGroup(groups.flexibilidad, totals.flexibilidad);
+    CatalogPresenter.printGroup(groups.strength, totals.strength);
+    CatalogPresenter.printGroup(groups.flexibility, totals.flexibility);
 
-    console.log(SEPARADOR_INNER);
+    console.log(INNER_SEPARATOR);
     console.log(`Total: ${exercises.length} ejercicios`);
-    console.log(SEPARADOR_TOP);
+    console.log(TOP_SEPARATOR);
   }
 
-  public static printCategoryCounters(exercises: Ejercicio[]): void {
-    const counters = contarPorCategoria(exercises);
-    console.log(`\n📊 Contadores por Categoría ${SEPARADOR_TOP}`);
+  public static printCategoryCounters(exercises: Exercise[]): void {
+    const counters = countByCategory(exercises);
+    console.log(`\n📊 Contadores por Categoría ${TOP_SEPARATOR}`);
     console.log(`   🏃 Cardio:        ${counters.cardio}`);
-    console.log(`   💪 Fuerza:        ${counters.fuerza}`);
-    console.log(`   🧘 Flexibilidad:  ${counters.flexibilidad}`);
-    console.log(`${SEPARADOR_INNER}`);
+    console.log(`   💪 Fuerza:        ${counters.strength}`);
+    console.log(`   🧘 Flexibilidad:  ${counters.flexibility}`);
+    console.log(`${INNER_SEPARATOR}`);
     console.log(`Total: ${exercises.length} ejercicios`);
-    console.log(`${SEPARADOR_TOP}\n`);
+    console.log(`${TOP_SEPARATOR}\n`);
   }
 
-  private static printGroup(group: Ejercicio[], summary: CategorySummary): void {
+  private static printGroup(group: Exercise[], summary: CategorySummary): void {
     if (group.length === 0) {
       return;
     }
@@ -63,14 +63,14 @@ export class CatalogPresenter {
       return;
     }
 
-    const { emoji, label } = obtenerEtiquetaCategoria(firstExercise.categoria);
-    const ejercicioWord = summary.count === 1 ? 'ejercicio' : 'ejercicios';
+    const { emoji, label } = getCategoryLabel(firstExercise.category);
+    const exerciseWord = summary.count === 1 ? 'ejercicio' : 'ejercicios';
     console.log(
-      `${emoji} ${label} (${summary.count} ${ejercicioWord}, ${summary.minutos} min, ${summary.calorias} kcal)`,
+      `${emoji} ${label} (${summary.count} ${exerciseWord}, ${summary.minutes} min, ${summary.calories} kcal)`,
     );
 
     for (const exercise of group) {
-      console.log(`   ${describirEjercicio(exercise)}`);
+      console.log(`   ${describeExercise(exercise)}`);
     }
   }
 }

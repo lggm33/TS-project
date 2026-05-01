@@ -15,10 +15,10 @@ async function main(): Promise<void> {
 
   const menuController = new MenuController(userService, exerciseService, routineService);
 
-  console.log("Welcome to the Routine Management App!");
+  console.log("¡Bienvenido a la App de Gestión de Rutinas!");
   await menuController.startMenu();
 }
 
 main().catch((error) => {
-  console.error("An error occurred:", error);
+  console.error("Ocurrió un error:", error);
 });

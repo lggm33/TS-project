@@ -1,63 +1,63 @@
 import type {
-  Ejercicio,
-  EjercicioCardio,
-  EjercicioFuerza,
-  EjercicioFlexibilidad,
-} from "../types/ejercicio.js";
-import { CategoriaEjercicio } from "../types/ejercicio.js";
-import type { EjercicioId } from "../types/identificadores.js";
+  Exercise,
+  CardioExercise,
+  StrengthExercise,
+  FlexibilityExercise,
+} from "../types/exercise.js";
+import { ExerciseCategory } from "../types/exercise.js";
+import type { ExerciseId } from "../types/identifiers.js";
 import type { IExerciseRepository } from "../repositories/ExerciseRepository.js";
 
-type CardioInput = Omit<EjercicioCardio, "id" | "ritmo">;
-type FuerzaInput = Omit<EjercicioFuerza, "id">;
-type FlexibilidadInput = Omit<EjercicioFlexibilidad, "id">;
+type CardioInput = Omit<CardioExercise, "id" | "pace">;
+type StrengthInput = Omit<StrengthExercise, "id">;
+type FlexibilityInput = Omit<FlexibilityExercise, "id">;
 
-export type NuevoEjercicioInput = CardioInput | FuerzaInput | FlexibilidadInput;
+export type NewExerciseInput = CardioInput | StrengthInput | FlexibilityInput;
 
 export class ExerciseService {
   private repository: IExerciseRepository;
-  private currentId: EjercicioId = 1;
+  private currentId: ExerciseId = 1;
 
   constructor(repository: IExerciseRepository) {
     this.repository = repository;
   }
 
-  public createExercise(data: NuevoEjercicioInput): Ejercicio {
+  public createExercise(data: NewExerciseInput): Exercise {
     const newExercise = this.buildExercise(data);
     this.repository.save(newExercise);
     return newExercise;
   }
 
-  public getExercise(id: EjercicioId): Ejercicio | undefined {
+  public getExercise(id: ExerciseId): Exercise | undefined {
     return this.repository.findById(id);
   }
 
-  public getAllExercises(): Ejercicio[] {
+  public getAllExercises(): Exercise[] {
     return this.repository.findAll();
   }
 
-  private buildExercise(data: NuevoEjercicioInput): Ejercicio {
+  private buildExercise(data: NewExerciseInput): Exercise {
     const id = this.nextId();
 
-    switch (data.categoria) {
-      case CategoriaEjercicio.CARDIO:
-        return { ...data, id, ritmo: this.calcularRitmo(data) };
-      case CategoriaEjercicio.FUERZA:
+    switch (data.category) {
+      case ExerciseCategory.CARDIO:
+        return { ...data, id, pace: this.calculatePace(data) };
+      case ExerciseCategory.STRENGTH:
         return { ...data, id };
-      case CategoriaEjercicio.FLEXIBILIDAD:
+      case ExerciseCategory.FLEXIBILITY:
         return { ...data, id };
     }
   }
 
-  private calcularRitmo(data: CardioInput): number {
-    if (data.distancia_recorrida <= 0) {
+  private calculatePace(data: CardioInput): number {
+    if (data.distance <= 0) {
       return 0;
     }
-    const ritmo = data.duracion / data.distancia_recorrida;
-    return Number(ritmo.toFixed(2));
+    const pace = data.duration / data.distance;
+    return Number(pace.toFixed(2));
   }
 
-  private nextId(): EjercicioId {
+  private nextId(): ExerciseId {
     const id = this.currentId;
     this.currentId += 1;
     return id;

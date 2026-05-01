@@ -1,22 +1,22 @@
 import { select, input, confirm } from "@inquirer/prompts";
 import type { UserService } from "../services/UserService.js";
-import type { ExerciseService, NuevoEjercicioInput } from "../services/ExerciseService.js";
+import type { ExerciseService, NewExerciseInput } from "../services/ExerciseService.js";
 import type { RoutineService } from "../services/RoutineService.js";
-import { DiaSemana } from "../types/rutina.js";
-import type { DiaSemanaType } from "../types/rutina.js";
+import { WeekDay } from "../types/routine.js";
+import type { WeekDayType } from "../types/routine.js";
 import type {
-  DatosPersonales,
-  Membresia,
-  NivelUsuarioType,
-  PlanMembresiaType,
-} from "../types/usuario.js";
-import { CategoriaEjercicio } from "../types/ejercicio.js";
-import type { CategoriaEjercicioType } from "../types/ejercicio.js";
+  PersonalData,
+  Membership,
+  UserLevelType,
+  MembershipPlanType,
+} from "../types/user.js";
+import { ExerciseCategory } from "../types/exercise.js";
+import type { ExerciseCategoryType } from "../types/exercise.js";
 import { ProfilePresenter } from "./ProfilePresenter.js";
 import { CatalogPresenter } from "./CatalogPresenter.js";
 
-type Sexo = DatosPersonales["sexo"];
-type Objetivo = DatosPersonales["objetivo"];
+type Gender = PersonalData["gender"];
+type Goal = PersonalData["goal"];
 
 export class MenuController {
   private userService: UserService;
@@ -79,33 +79,33 @@ export class MenuController {
 
   private async addUserPrompt(): Promise<void> {
     const personal = await this.collectPersonalData();
-    const membresia = await this.collectMembresiaData();
+    const membership = await this.collectMembershipData();
 
-    const newUser = this.userService.createUser({ personal, membresia });
-    console.log(`✅ Usuario ${newUser.personal.nombre} creado con éxito.`);
+    const newUser = this.userService.createUser({ personal, membership });
+    console.log(`✅ Usuario ${newUser.personal.name} creado con éxito.`);
   }
 
   private async addExercisePrompt(): Promise<void> {
-    const nombre = await input({ message: "Nombre del ejercicio:" });
-    const duracion = await this.askPositiveNumber("Duración (minutos):");
-    const calorias_por_minuto = await this.askPositiveNumber("Calorías por minuto:");
+    const name = await input({ message: "Nombre del ejercicio:" });
+    const duration = await this.askPositiveNumber("Duración (minutos):");
+    const caloriesPerMinute = await this.askPositiveNumber("Calorías por minuto:");
 
-    const categoria = await select<CategoriaEjercicioType>({
+    const category = await select<ExerciseCategoryType>({
       message: "Categoría del ejercicio:",
       choices: [
-        { name: "🏃 Cardio", value: CategoriaEjercicio.CARDIO },
-        { name: "💪 Fuerza", value: CategoriaEjercicio.FUERZA },
-        { name: "🧘 Flexibilidad", value: CategoriaEjercicio.FLEXIBILIDAD },
+        { name: "🏃 Cardio", value: ExerciseCategory.CARDIO },
+        { name: "💪 Fuerza", value: ExerciseCategory.STRENGTH },
+        { name: "🧘 Flexibilidad", value: ExerciseCategory.FLEXIBILITY },
       ],
     });
 
     const exerciseInput = await this.collectExerciseSpecificData(
-      categoria,
-      { nombre, duracion, calorias_por_minuto },
+      category,
+      { name, duration, caloriesPerMinute },
     );
 
     const newExercise = this.exerciseService.createExercise(exerciseInput);
-    console.log(`✅ Ejercicio ${newExercise.nombre} (${newExercise.categoria}) creado con éxito.`);
+    console.log(`✅ Ejercicio ${newExercise.name} (${newExercise.category}) creado con éxito.`);
   }
 
   private async createRoutinePrompt(): Promise<void> {
@@ -123,20 +123,20 @@ export class MenuController {
 
     const userId = await select({
       message: "Seleccione un usuario:",
-      choices: users.map((u) => ({ name: u.personal.nombre, value: u.id })),
+      choices: users.map((u) => ({ name: u.personal.name, value: u.id })),
     });
 
     const exerciseId = await select({
       message: "Seleccione un ejercicio:",
       choices: exercises.map((e) => ({
-        name: `${e.nombre} (${e.categoria})`,
+        name: `${e.name} (${e.category})`,
         value: e.id,
       })),
     });
 
-    const day = await select<DiaSemanaType>({
+    const day = await select<WeekDayType>({
       message: "Seleccione el día de la semana:",
-      choices: Object.values(DiaSemana).map((d) => ({ name: d, value: d })),
+      choices: Object.values(WeekDay).map((d) => ({ name: d, value: d })),
     });
 
     const success = this.routineService.addExerciseToRoutine(userId, exerciseId, day);
@@ -157,7 +157,7 @@ export class MenuController {
 
     const userId = await select({
       message: "Seleccione un usuario:",
-      choices: users.map((u) => ({ name: u.personal.nombre, value: u.id })),
+      choices: users.map((u) => ({ name: u.personal.name, value: u.id })),
     });
 
     const user = this.userService.getUser(userId);
@@ -182,14 +182,14 @@ export class MenuController {
     CatalogPresenter.printCategoryCounters(exercises);
   }
 
-  private async collectPersonalData(): Promise<DatosPersonales> {
-    const nombre = await input({ message: "Nombre del usuario:" });
+  private async collectPersonalData(): Promise<PersonalData> {
+    const name = await input({ message: "Nombre del usuario:" });
     const email = await input({ message: "Email del usuario:" });
-    const edad = await this.askPositiveNumber("Edad:");
-    const peso = await this.askPositiveNumber("Peso (kg):");
-    const altura = await this.askPositiveNumber("Altura (m):");
+    const age = await this.askPositiveNumber("Edad:");
+    const weight = await this.askPositiveNumber("Peso (kg):");
+    const height = await this.askPositiveNumber("Altura (m):");
 
-    const sexo = await select<Sexo>({
+    const gender = await select<Gender>({
       message: "Sexo:",
       choices: [
         { name: "Masculino", value: "masculino" },
@@ -197,7 +197,7 @@ export class MenuController {
       ],
     });
 
-    const objetivo = await select<Objetivo>({
+    const goal = await select<Goal>({
       message: "Objetivo:",
       choices: [
         { name: "Perder peso", value: "perder peso" },
@@ -206,7 +206,7 @@ export class MenuController {
       ],
     });
 
-    const nivel = await select<NivelUsuarioType>({
+    const level = await select<UserLevelType>({
       message: "Nivel:",
       choices: [
         { name: "Principiante", value: "principiante" },
@@ -215,11 +215,11 @@ export class MenuController {
       ],
     });
 
-    return { nombre, email, edad, peso, altura, sexo, objetivo, nivel };
+    return { name, email, age, weight, height, gender, goal, level };
   }
 
-  private async collectMembresiaData(): Promise<Membresia> {
-    const plan = await select<PlanMembresiaType>({
+  private async collectMembershipData(): Promise<Membership> {
+    const plan = await select<MembershipPlanType>({
       message: "Plan de membresía:",
       choices: [
         { name: "Free", value: "free" },
@@ -228,51 +228,51 @@ export class MenuController {
       ],
     });
 
-    const fechaInicioStr = await input({
+    const startDateStr = await input({
       message: "Fecha de inicio (YYYY-MM-DD):",
       default: new Date().toISOString().slice(0, 10),
       validate: (val) => MenuController.isValidIsoDate(val) || "Debe ser una fecha válida YYYY-MM-DD",
     });
-    const fecha_inicio = new Date(fechaInicioStr);
+    const startDate = new Date(startDateStr);
 
-    const activa = await confirm({ message: "¿Membresía activa?", default: true });
+    const active = await confirm({ message: "¿Membresía activa?", default: true });
 
-    return { plan, fecha_inicio, activa };
+    return { plan, startDate, active };
   }
 
   private async collectExerciseSpecificData(
-    categoria: CategoriaEjercicioType,
-    common: { nombre: string; duracion: number; calorias_por_minuto: number },
-  ): Promise<NuevoEjercicioInput> {
-    switch (categoria) {
-      case CategoriaEjercicio.CARDIO: {
-        const distancia_recorrida = await this.askPositiveNumber("Distancia recorrida (km):");
-        const zona_frecuencia_cardiaca = await this.askPositiveNumber("Zona de frecuencia cardíaca (1-5):");
+    category: ExerciseCategoryType,
+    common: { name: string; duration: number; caloriesPerMinute: number },
+  ): Promise<NewExerciseInput> {
+    switch (category) {
+      case ExerciseCategory.CARDIO: {
+        const distance = await this.askPositiveNumber("Distancia recorrida (km):");
+        const heartRateZone = await this.askPositiveNumber("Zona de frecuencia cardíaca (1-5):");
         return {
           ...common,
-          categoria: CategoriaEjercicio.CARDIO,
-          distancia_recorrida,
-          zona_frecuencia_cardiaca,
+          category: ExerciseCategory.CARDIO,
+          distance,
+          heartRateZone,
         };
       }
-      case CategoriaEjercicio.FUERZA: {
-        const series = await this.askPositiveNumber("Series:");
-        const repeticiones = await this.askPositiveNumber("Repeticiones por serie:");
-        const peso = await this.askPositiveNumber("Peso (kg):");
+      case ExerciseCategory.STRENGTH: {
+        const sets = await this.askPositiveNumber("Series:");
+        const reps = await this.askPositiveNumber("Repeticiones por serie:");
+        const weight = await this.askPositiveNumber("Peso (kg):");
         return {
           ...common,
-          categoria: CategoriaEjercicio.FUERZA,
-          series,
-          repeticiones,
-          peso,
+          category: ExerciseCategory.STRENGTH,
+          sets,
+          reps,
+          weight,
         };
       }
-      case CategoriaEjercicio.FLEXIBILIDAD: {
-        const numero_poses = await this.askPositiveNumber("Número de poses:");
+      case ExerciseCategory.FLEXIBILITY: {
+        const poses = await this.askPositiveNumber("Número de poses:");
         return {
           ...common,
-          categoria: CategoriaEjercicio.FLEXIBILIDAD,
-          numero_poses,
+          category: ExerciseCategory.FLEXIBILITY,
+          poses,
         };
       }
     }
