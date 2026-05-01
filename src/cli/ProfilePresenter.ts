@@ -1,47 +1,47 @@
-import type { Usuario, Ejercicio } from "../types/index.js";
+import type { User, Exercise } from "../types/index.js";
 import {
   calculateDailyCalories,
   calculateWeeklyCalories,
   getHighestCalorieDay,
 } from "../utils/calculations.js";
-import { describirEjercicio } from "../utils/exerciseFormatters.js";
+import { describeExercise } from "../utils/exerciseFormatters.js";
 import { formatDuration, capitalizeString } from "../utils/formatters.js";
 
 export class ProfilePresenter {
-  public static printExerciseStats(exercise: Ejercicio): string {
-    return describirEjercicio(exercise);
+  public static printExerciseStats(exercise: Exercise): string {
+    return describeExercise(exercise);
   }
 
-  public static printUserProfile(user: Usuario): void {
-    const { personal, membresia, rutina } = user;
-    const trainedDays = ProfilePresenter.collectTrainedDays(rutina);
-    const totalCalories = calculateWeeklyCalories(rutina);
+  public static printUserProfile(user: User): void {
+    const { personal, membership, routine } = user;
+    const trainedDays = ProfilePresenter.collectTrainedDays(routine);
+    const totalCalories = calculateWeeklyCalories(routine);
     const averageCalories = ProfilePresenter.calculateAverage(totalCalories, trainedDays.length);
-    const topDay = getHighestCalorieDay(rutina);
-    const fechaInicio = membresia.fecha_inicio.toISOString().slice(0, 10);
+    const topDay = getHighestCalorieDay(routine);
+    const startDate = membership.startDate.toISOString().slice(0, 10);
 
     console.log(`\n👤 Perfil de Usuario
 ══════════════════════════════════
-   Nombre:       ${personal.nombre}
-   Edad:         ${personal.edad}
-   Nivel:        ${personal.nivel}
-   Objetivo:     ${personal.objetivo}
+   Nombre:       ${personal.name}
+   Edad:         ${personal.age}
+   Nivel:        ${personal.level}
+   Objetivo:     ${personal.goal}
 
 🪪 Membresía
 ──────────────────────────────────
-   Plan:         ${membresia.plan}
-   Inicio:       ${fechaInicio}
-   Activa:       ${membresia.activa ? 'sí' : 'no'}
+   Plan:         ${membership.plan}
+   Inicio:       ${startDate}
+   Activa:       ${membership.active ? 'sí' : 'no'}
 
 📋 Rutina Semanal
 ──────────────────────────────────`);
 
     for (const [day, dailyRoutine] of trainedDays) {
       const calories = calculateDailyCalories(dailyRoutine);
-      const timeFormatted = formatDuration(dailyRoutine.ejercicio.duracion);
+      const timeFormatted = formatDuration(dailyRoutine.exercise.duration);
 
       const paddedDay = capitalizeString(day).padEnd(10);
-      const paddedName = dailyRoutine.ejercicio.nombre.padEnd(14);
+      const paddedName = dailyRoutine.exercise.name.padEnd(14);
       const paddedTime = timeFormatted.padEnd(6);
 
       console.log(`   ${paddedDay}: ${paddedName} - ${paddedTime} (${calories} cal)`);
@@ -59,9 +59,9 @@ export class ProfilePresenter {
     console.log(`══════════════════════════════════\n`);
   }
 
-  private static collectTrainedDays(rutina: Usuario["rutina"]): [string, NonNullable<Usuario["rutina"]["plan"][keyof Usuario["rutina"]["plan"]]>][] {
-    const result: [string, NonNullable<Usuario["rutina"]["plan"][keyof Usuario["rutina"]["plan"]]>][] = [];
-    for (const [day, dailyRoutine] of Object.entries(rutina.plan)) {
+  private static collectTrainedDays(routine: User["routine"]): [string, NonNullable<User["routine"]["plan"][keyof User["routine"]["plan"]]>][] {
+    const result: [string, NonNullable<User["routine"]["plan"][keyof User["routine"]["plan"]]>][] = [];
+    for (const [day, dailyRoutine] of Object.entries(routine.plan)) {
       if (dailyRoutine !== undefined) {
         result.push([day, dailyRoutine]);
       }

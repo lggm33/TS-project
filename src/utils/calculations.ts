@@ -1,45 +1,45 @@
 import type {
-  Ejercicio,
-  EjercicioCardio,
-  EjercicioFuerza,
-  EjercicioFlexibilidad,
-} from "../types/ejercicio.js";
-import { CategoriaEjercicio } from "../types/ejercicio.js";
-import type { Rutina_Diaria, Rutina_Semanal } from "../types/rutina.js";
+  Exercise,
+  CardioExercise,
+  StrengthExercise,
+  FlexibilityExercise,
+} from "../types/exercise.js";
+import { ExerciseCategory } from "../types/exercise.js";
+import type { DailyRoutine, WeeklyRoutine } from "../types/routine.js";
 
 export interface ExercisesByCategory {
-  cardio: EjercicioCardio[];
-  fuerza: EjercicioFuerza[];
-  flexibilidad: EjercicioFlexibilidad[];
+  cardio: CardioExercise[];
+  strength: StrengthExercise[];
+  flexibility: FlexibilityExercise[];
 }
 
 export interface CategorySummary {
   count: number;
-  minutos: number;
-  calorias: number;
+  minutes: number;
+  calories: number;
 }
 
 export interface CategoryTotals {
   cardio: CategorySummary;
-  fuerza: CategorySummary;
-  flexibilidad: CategorySummary;
+  strength: CategorySummary;
+  flexibility: CategorySummary;
 }
 
 export interface CategoryCounters {
   cardio: number;
-  fuerza: number;
-  flexibilidad: number;
+  strength: number;
+  flexibility: number;
 }
 
-export function calculateTotalCalories(exercise: Ejercicio): number {
-  return exercise.calorias_por_minuto * exercise.duracion;
+export function calculateTotalCalories(exercise: Exercise): number {
+  return exercise.caloriesPerMinute * exercise.duration;
 }
 
-export function calculateDailyCalories(routine: Rutina_Diaria): number {
-  return calculateTotalCalories(routine.ejercicio);
+export function calculateDailyCalories(routine: DailyRoutine): number {
+  return calculateTotalCalories(routine.exercise);
 }
 
-export function calculateWeeklyCalories(routine: Rutina_Semanal): number {
+export function calculateWeeklyCalories(routine: WeeklyRoutine): number {
   const days = Object.values(routine.plan);
   let totalCalories = 0;
 
@@ -53,11 +53,11 @@ export function calculateWeeklyCalories(routine: Rutina_Semanal): number {
 }
 
 export function getHighestCalorieDay(
-  routine: Rutina_Semanal,
+  routine: WeeklyRoutine,
 ): { day: string; calories: number } | null {
   const entries = Object.entries(routine.plan).filter(
     ([, r]) => r !== undefined,
-  ) as [string, Rutina_Diaria][];
+  ) as [string, DailyRoutine][];
 
   if (entries.length === 0) {
     return null;
@@ -77,23 +77,23 @@ export function getHighestCalorieDay(
   return { day: maxDay, calories: maxCalories };
 }
 
-export function agruparPorCategoria(exercises: Ejercicio[]): ExercisesByCategory {
+export function groupByCategory(exercises: Exercise[]): ExercisesByCategory {
   const groups: ExercisesByCategory = {
     cardio: [],
-    fuerza: [],
-    flexibilidad: [],
+    strength: [],
+    flexibility: [],
   };
 
   for (const exercise of exercises) {
-    switch (exercise.categoria) {
-      case CategoriaEjercicio.CARDIO:
+    switch (exercise.category) {
+      case ExerciseCategory.CARDIO:
         groups.cardio.push(exercise);
         break;
-      case CategoriaEjercicio.FUERZA:
-        groups.fuerza.push(exercise);
+      case ExerciseCategory.STRENGTH:
+        groups.strength.push(exercise);
         break;
-      case CategoriaEjercicio.FLEXIBILIDAD:
-        groups.flexibilidad.push(exercise);
+      case ExerciseCategory.FLEXIBILITY:
+        groups.flexibility.push(exercise);
         break;
     }
   }
@@ -101,36 +101,36 @@ export function agruparPorCategoria(exercises: Ejercicio[]): ExercisesByCategory
   return groups;
 }
 
-export function sumarPorCategoria(exercises: Ejercicio[]): CategoryTotals {
-  const groups = agruparPorCategoria(exercises);
+export function sumByCategory(exercises: Exercise[]): CategoryTotals {
+  const groups = groupByCategory(exercises);
   return {
-    cardio: resumirGrupo(groups.cardio),
-    fuerza: resumirGrupo(groups.fuerza),
-    flexibilidad: resumirGrupo(groups.flexibilidad),
+    cardio: summarizeGroup(groups.cardio),
+    strength: summarizeGroup(groups.strength),
+    flexibility: summarizeGroup(groups.flexibility),
   };
 }
 
-export function contarPorCategoria(exercises: Ejercicio[]): CategoryCounters {
-  const groups = agruparPorCategoria(exercises);
+export function countByCategory(exercises: Exercise[]): CategoryCounters {
+  const groups = groupByCategory(exercises);
   return {
     cardio: groups.cardio.length,
-    fuerza: groups.fuerza.length,
-    flexibilidad: groups.flexibilidad.length,
+    strength: groups.strength.length,
+    flexibility: groups.flexibility.length,
   };
 }
 
-function resumirGrupo(exercises: Ejercicio[]): CategorySummary {
-  let minutos = 0;
-  let calorias = 0;
+function summarizeGroup(exercises: Exercise[]): CategorySummary {
+  let minutes = 0;
+  let calories = 0;
 
   for (const exercise of exercises) {
-    minutos += exercise.duracion;
-    calorias += calculateTotalCalories(exercise);
+    minutes += exercise.duration;
+    calories += calculateTotalCalories(exercise);
   }
 
   return {
     count: exercises.length,
-    minutos,
-    calorias,
+    minutes,
+    calories,
   };
 }
