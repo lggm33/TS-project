@@ -3,11 +3,13 @@ import { ExerciseCategory } from "./exercise.js";
 import { UserLevel, MembershipPlan } from "./user.js";
 import type { WeeklyRoutine, DailyRoutine, WeekDayType } from "./routine.js";
 import type {
-  User,
-  PersonalData,
+  Student,
+  Trainer,
   Membership,
   UserLevelType,
   MembershipPlanType,
+  UserType,
+  User,
 } from "./user.js";
 import type {
   Exercise,
@@ -30,12 +32,14 @@ export type {
   WeeklyRoutine,
   DailyRoutine,
   WeekDayType,
-  User,
-  PersonalData,
   Membership,
+  Student,
+  Trainer,
   UserLevelType,
   MembershipPlanType,
   ExerciseId,
   UserId,
   RoutineId,
+  UserType,
+  User,
 };

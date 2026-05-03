@@ -9,14 +9,20 @@ import type {
   Membership,
   UserLevelType,
   MembershipPlanType,
+  UserType,
+  User,
+  Student,
+  Trainer,
+  StudentData
 } from "../types/user.js";
 import { ExerciseCategory } from "../types/exercise.js";
 import type { ExerciseCategoryType } from "../types/exercise.js";
 import { ProfilePresenter } from "./ProfilePresenter.js";
 import { CatalogPresenter } from "./CatalogPresenter.js";
+import { formatDuration, capitalizeString } from "../utils/formatters.js";
 
 type Gender = PersonalData["gender"];
-type Goal = PersonalData["goal"];
+type Goal = StudentData["goal"];
 
 export class MenuController {
   private userService: UserService;
@@ -37,55 +43,200 @@ export class MenuController {
     let exit = false;
 
     while (!exit) {
-      const option = await select({
-        message: "Seleccione una opción",
+
+      const options = await select({
+        message: "Bienvenido a la App de Gestión de Rutinas",
         choices: [
-          { name: "Agregar Usuario", value: "add_user" },
-          { name: "Agregar Ejercicio", value: "add_exercise" },
-          { name: "Crear Rutina", value: "create_routine" },
-          { name: "Ver Perfil", value: "view_profile" },
-          { name: "Ver Catálogo", value: "view_catalog" },
-          { name: "Ver Contadores por Categoría", value: "view_counters" },
+          { name: "Iniciar sesión", value: "login" },
+          { name: "Registrarse", value: "register" },
           { name: "Salir", value: "exit" },
         ],
       });
 
-      switch (option) {
-        case "add_user":
-          await this.addUserPrompt();
+      switch (options) {
+        case "login":
+          await this.loginPrompt();
+          break;
+          case "register":
+            await this.registerPrompt();
+            break;
+          case "exit":
+            exit = true;
+            console.log("\n¡Hasta luego!\n");
+            break;
+      }
+    }
+  }
+
+  private async loginPrompt(): Promise<void> {
+    const chooseUserType = await select({
+      message: "Seleccione el tipo de usuario:",
+      choices: [
+        { name: "Estudiante", value: "student" },
+        { name: "Entrenador", value: "trainer" },
+      ],
+    });
+    switch (chooseUserType) {
+      case "student":
+        await this.studentLoginPrompt();
+        break;
+      case "trainer":
+        await this.trainerLoginPrompt();
+        break;
+    }
+  }
+
+  private async registerPrompt(): Promise<void> {
+    console.log("Registro de usuarios\n");
+    const basePersonalData = await this.collectBasePersonalDataPrompt();
+
+    switch (basePersonalData.type) {
+      case "student":
+        const studentPersonalData = await this.collectStudentPersonalData(basePersonalData);
+        const membership = await this.collectMembershipData();
+        const routineName = await input({ message: "Nombre de la rutina:" });
+        const student = this.userService.createStudent({ 
+          personal: studentPersonalData,
+          membership, 
+          type: "student",
+          routine_name: routineName,
+        });
+        console.log(`\n✅ Usuario ${student.personal.name} creado con éxito.\n`);
+        await this.studentMenu(student);
+        break;
+      case "trainer":
+        const trainer = this.userService.createTrainer({ 
+          personal: basePersonalData, 
+          type: "trainer" });
+        console.log(`\n✅ Usuario ${trainer.personal.name} creado con éxito.\n`);
+        await this.trainerMenu(trainer);
+        break;
+    }
+  }
+
+  private async collectBasePersonalDataPrompt(): Promise<PersonalData> {
+    const type = await select({
+      message: "Seleccione el tipo de usuario:",
+      choices: [
+        { name: "Estudiante", value: "student" },
+        { name: "Entrenador", value: "trainer" },
+      ],
+    }) as UserType;
+    const name = await input({ message: "Nombre del usuario:" });
+    const email = await input({ message: "Email del usuario:" });
+    
+    const gender = await select<Gender>({
+      message: "Sexo:",
+      choices: [
+        { name: "Masculino", value: "masculino" },
+        { name: "Femenino", value: "femenino" },
+      ],
+    });
+
+    return { name, email, gender, type };
+  }
+
+  private async studentLoginPrompt(): Promise<void> {
+    const students = this.userService.getAllUsers("student");
+    if (students.length === 0) {
+      console.log("❌ No hay estudiantes registrados.");
+      console.log("Primero debe registrarse como estudiante.");
+      console.log("================================================ \n");
+      await this.registerPrompt();
+      return;
+    }
+    const studentId = await select({
+      message: "Seleccione su perfil:",
+      choices: students.map((s) => ({ name: s.personal.name, value: s.id })),
+    });
+
+    const student = this.userService.getUser(studentId) as Student;
+    if (!student) {
+      console.log("❌ Estudiante no encontrado.");
+      return;
+    }
+    await this.studentMenu(student);
+  }
+
+  private async trainerLoginPrompt(): Promise<void> {
+    const trainers = this.userService.getAllUsers("trainer");
+    if (trainers.length === 0) {
+      console.log("❌ No hay entrenadores registrados.");
+      console.log("Primero debe registrarse como entrenador.");
+      await this.registerPrompt();
+      return;
+    }
+    const trainerId = await select({
+      message: "Seleccione su perfil:",
+      choices: trainers.map((t) => ({ name: t.personal.name, value: t.id })),
+    });
+
+    const trainer = this.userService.getUser(trainerId) as Trainer;
+    await this.trainerMenu(trainer);
+  }
+  
+  private async studentMenu(student: Student): Promise<void> {
+
+    console.log(`\n👋 Bienvenido ${student.personal.name}!`);
+    let exit = false;
+    while (!exit) {
+      const options = await select({
+        message: "¿Qué desea hacer?",
+        choices: [
+          { name: "Ver perfil", value: "view_profile" },
+          { name: "Manejar rutina", value: "manage_routine" },
+          { name: "Agregar ejercicio", value: "add_exercise" },
+          { name: "Cerrar sesión", value: "exit" },
+        ],
+      });
+
+      switch (options) {
+        case "view_profile":
+          await ProfilePresenter.printStudenProfile(student);
+          break;
+        case "manage_routine":
+          await this.manageRoutinePrompt(student);
           break;
         case "add_exercise":
-          await this.addExercisePrompt();
-          break;
-        case "create_routine":
-          await this.createRoutinePrompt();
-          break;
-        case "view_profile":
-          await this.viewProfilePrompt();
-          break;
-        case "view_catalog":
-          await this.viewCatalogPrompt();
-          break;
-        case "view_counters":
-          this.viewCountersPrompt();
+          await this.addExercisePrompt(student);
           break;
         case "exit":
           exit = true;
-          console.log("¡Hasta luego!");
+          console.log("\n¡Cerrando sesión...\n");
           break;
       }
     }
   }
 
-  private async addUserPrompt(): Promise<void> {
-    const personal = await this.collectPersonalData();
-    const membership = await this.collectMembershipData();
+  private async trainerMenu(trainer: Trainer): Promise<void> {
+    console.log(`\n👋 Bienvenido ${trainer.personal.name}!`);
+    let exit = false;
+    while (!exit) {
+      const options = await select({
+        message: "¿Qué desea hacer?",
+        choices: [
+          { name: "Ver perfil y usuarios asignados", value: "view_profile_and_users_assigned" },
+          { name: "Crear ejercicio", value: "create_exercise" },
+          { name: "Cerrar sesión", value: "exit" },
+        ],
+      });
 
-    const newUser = this.userService.createUser({ personal, membership });
-    console.log(`✅ Usuario ${newUser.personal.name} creado con éxito.`);
+      switch (options) {
+        case "view_profile_and_users_assigned":
+          await ProfilePresenter.printTrainerProfile(trainer, this.userService);
+          break;
+        case "create_exercise":
+          await this.createExercisePrompt();
+          break;
+        case "exit":
+          exit = true;
+          console.log("\n¡Cerrando sesión...\n");
+          break;
+      }
+    }
   }
 
-  private async addExercisePrompt(): Promise<void> {
+  private async createExercisePrompt(): Promise<void> {
     const name = await input({ message: "Nombre del ejercicio:" });
     const duration = await this.askPositiveNumber("Duración (minutos):");
     const caloriesPerMinute = await this.askPositiveNumber("Calorías por minuto:");
@@ -104,28 +255,17 @@ export class MenuController {
       { name, duration, caloriesPerMinute },
     );
 
-    const newExercise = this.exerciseService.createExercise(exerciseInput);
-    console.log(`✅ Ejercicio ${newExercise.name} (${newExercise.category}) creado con éxito.`);
+    const newExercise = this.exerciseService.createExerciseTemplate(exerciseInput);
+    console.log(`\n✅ Ejercicio ${newExercise.name} (${newExercise.category}) creado con éxito.\n`);
   }
 
-  private async createRoutinePrompt(): Promise<void> {
-    const users = this.userService.getAllUsers();
-    if (users.length === 0) {
-      console.log("❌ No hay usuarios registrados. Agregue un usuario primero.");
-      return;
-    }
-
-    const exercises = this.exerciseService.getAllExercises();
+  private async addExercisePrompt(student: Student): Promise<void> {
+    const exercises = this.exerciseService.getAllExerciseTemplates();
     if (exercises.length === 0) {
-      console.log("❌ No hay ejercicios registrados. Agregue un ejercicio primero.");
+      console.log("❌ No hay ejercicios registrados. Pidele a un entrenador que te cree uno.");
       return;
     }
-
-    const userId = await select({
-      message: "Seleccione un usuario:",
-      choices: users.map((u) => ({ name: u.personal.name, value: u.id })),
-    });
-
+    
     const exerciseId = await select({
       message: "Seleccione un ejercicio:",
       choices: exercises.map((e) => ({
@@ -139,63 +279,110 @@ export class MenuController {
       choices: Object.values(WeekDay).map((d) => ({ name: d, value: d })),
     });
 
-    const success = this.routineService.addExerciseToRoutine(userId, exerciseId, day);
+    const success = this.routineService.addExerciseToRoutine(student.id, exerciseId, day);
 
     if (success) {
-      console.log(`✅ Ejercicio asignado a la rutina del día ${day} con éxito.`);
+      console.log(`\n✅ Ejercicio asignado a la rutina del día ${day} con éxito.\n`);
     } else {
-      console.log("❌ Error al asignar el ejercicio.");
+      console.log("\n❌ Error al asignar el ejercicio.\n");
     }
   }
 
-  private async viewProfilePrompt(): Promise<void> {
-    const users = this.userService.getAllUsers();
-    if (users.length === 0) {
-      console.log("❌ No hay usuarios registrados.");
+  private async manageRoutinePrompt(student: Student): Promise<void> {
+    const days = Object.entries(student.routine.plan)
+      .filter(([_, daily]) => daily !== undefined && daily.exercises.length > 0)
+      .map(([day, _]) => ({ name: capitalizeString(day), value: day as WeekDayType }));
+
+    if (days.length === 0) {
+      console.log("❌ No tienes días con ejercicios en tu rutina.");
       return;
     }
 
-    const userId = await select({
-      message: "Seleccione un usuario:",
-      choices: users.map((u) => ({ name: u.personal.name, value: u.id })),
-    });
+    let exit = false;
+    while (!exit) {
+      const selectedDay = await select({
+        message: "Seleccione un día para gestionar:",
+        choices: [...days, { name: "⬅️ Volver", value: "back" as any }],
+      });
 
-    const user = this.userService.getUser(userId);
-    if (user !== undefined) {
-      ProfilePresenter.printUserProfile(user);
+      if (selectedDay === "back") {
+        exit = true;
+        continue;
+      }
+
+      const dailyRoutine = student.routine.plan[selectedDay as WeekDayType]!;
+      
+      let backDay = false;
+      while (!backDay) {
+        const action = await select({
+          message: `Gestionando el día ${capitalizeString(selectedDay)}:`,
+          choices: [
+            { name: "Marcar ejercicios completados", value: "exercises" },
+            { name: "Dejar/Editar comentario del día", value: "comment" },
+            { name: "⬅️ Volver", value: "back" },
+          ],
+        });
+
+        switch (action) {
+          case "back":
+            backDay = true;
+            break;
+            
+          case "comment": {
+            const currentComment = dailyRoutine.comments || "";
+            console.log(`Comentario actual: ${currentComment ? currentComment : "(Ninguno)"}`);
+            const newComment = await input({ message: "Nuevo comentario:" });
+            dailyRoutine.comments = newComment;
+            this.userService.updateUser(student);
+            console.log("\n✅ Comentario guardado.\n");
+            break;
+          }
+            
+          case "exercises": {
+            const exerciseChoices = dailyRoutine.exercises.map((ex, index) => ({
+              name: `${ex.completed ? '✅' : '❌'} ${ex.name} [${ex.category}]`,
+              value: index,
+            }));
+
+            const exIndex = await select({
+              message: "Seleccione un ejercicio para cambiar su estado:",
+              choices: [...exerciseChoices, { name: "⬅️ Volver", value: -1 }],
+            });
+
+            if (exIndex !== -1) {
+              const ex = dailyRoutine.exercises[exIndex];
+              if (!ex) break;
+
+              const isCompleted = await confirm({
+                message: `¿Marcar "${ex.name}" como completado?`,
+                default: ex.completed,
+              });
+              ex.completed = isCompleted;
+              
+              if (isCompleted) {
+                 if (ex.category === 'fuerza') {
+                   const weight = await this.askPositiveNumber(`Peso final levantado (kg) [Sugerido: ${ex.weight}]:`);
+                   ex.finalWeightLifted = weight;
+                 } else if (ex.category === 'cardio') {
+                   const cals = await this.askPositiveNumber(`Calorías finales quemadas [Sugeridas: ${ex.caloriesPerMinute * ex.duration}]:`);
+                   ex.finalCaloriesBurned = cals;
+                 }
+              }
+
+              this.userService.updateUser(student);
+              console.log("\n✅ Estado del ejercicio actualizado.\n");
+            }
+            break;
+          }
+        }
+      }
     }
   }
 
-  private async viewCatalogPrompt(): Promise<void> {
-    const exercises = this.exerciseService.getAllExercises();
-    const users = this.userService.getAllUsers();
-
-    if (users.length === 0) {
-      CatalogPresenter.printCatalog(exercises);
-      return;
-    }
-    CatalogPresenter.printCatalog(exercises);
-  }
-
-  private viewCountersPrompt(): void {
-    const exercises = this.exerciseService.getAllExercises();
-    CatalogPresenter.printCategoryCounters(exercises);
-  }
-
-  private async collectPersonalData(): Promise<PersonalData> {
-    const name = await input({ message: "Nombre del usuario:" });
-    const email = await input({ message: "Email del usuario:" });
+  private async collectStudentPersonalData(basePersonalData: PersonalData): Promise<StudentData> {
     const age = await this.askPositiveNumber("Edad:");
     const weight = await this.askPositiveNumber("Peso (kg):");
     const height = await this.askPositiveNumber("Altura (m):");
-
-    const gender = await select<Gender>({
-      message: "Sexo:",
-      choices: [
-        { name: "Masculino", value: "masculino" },
-        { name: "Femenino", value: "femenino" },
-      ],
-    });
 
     const goal = await select<Goal>({
       message: "Objetivo:",
@@ -213,9 +400,9 @@ export class MenuController {
         { name: "Intermedio", value: "intermedio" },
         { name: "Avanzado", value: "avanzado" },
       ],
-    });
+    })
 
-    return { name, email, age, weight, height, gender, goal, level };
+    return { ...basePersonalData, age, weight, height, goal, level };
   }
 
   private async collectMembershipData(): Promise<Membership> {

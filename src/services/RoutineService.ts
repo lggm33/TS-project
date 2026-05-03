@@ -19,19 +19,31 @@ export class RoutineService {
     day: WeekDayType,
   ): boolean {
     const user = this.userService.getUser(userId);
-    const exercise = this.exerciseService.getExercise(exerciseId);
+    const exercise = this.exerciseService.generateExercise(exerciseId);
 
     if (!user || !exercise) {
       return false;
     }
 
-    const dailyRoutine: DailyRoutine = {
-      id: this.nextRoutineId(),
-      day: day,
-      exercise: exercise,
-    };
+    if (user?.personal.type != 'student') {
+      return false;
+    }
+    if (!('routine' in user)) {
+      return false;
+    }
 
-    user.routine.plan[day] = dailyRoutine;
+    let dailyRoutine = user.routine.plan[day];
+
+    if (!dailyRoutine) {
+      dailyRoutine = {
+        id: this.nextRoutineId(),
+        day: day,
+        exercises: [],
+      };
+      user.routine.plan[day] = dailyRoutine;
+    }
+
+    dailyRoutine.exercises.push(exercise);
     this.userService.updateUser(user);
 
     return true;
