@@ -13,6 +13,7 @@ interface BaseExercise {
   name: string;
   duration: number;
   caloriesPerMinute: number;
+  completed: boolean;
 }
 
 interface CardioExercise extends BaseExercise {
@@ -20,6 +21,7 @@ interface CardioExercise extends BaseExercise {
   distance: number;
   pace: number;
   heartRateZone: number;
+  finalCaloriesBurned: number;
 }
 
 interface StrengthExercise extends BaseExercise {
@@ -27,11 +29,13 @@ interface StrengthExercise extends BaseExercise {
   sets: number;
   reps: number;
   weight: number;
+  finalWeightLifted: number;
 }
 
 interface FlexibilityExercise extends BaseExercise {
   category: typeof ExerciseCategory.FLEXIBILITY;
   poses: number;
+  finalCommentsUser: string;
 }
 
 type Exercise = CardioExercise | StrengthExercise | FlexibilityExercise;

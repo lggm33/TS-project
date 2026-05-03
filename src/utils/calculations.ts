@@ -36,7 +36,11 @@ export function calculateTotalCalories(exercise: Exercise): number {
 }
 
 export function calculateDailyCalories(routine: DailyRoutine): number {
-  return calculateTotalCalories(routine.exercise);
+  let totalCalories = 0;
+  for (const exercise of routine.exercises) {
+    totalCalories += calculateTotalCalories(exercise);
+  }
+  return totalCalories;
 }
 
 export function calculateWeeklyCalories(routine: WeeklyRoutine): number {

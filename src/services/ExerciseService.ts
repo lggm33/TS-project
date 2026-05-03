@@ -8,9 +8,9 @@ import { ExerciseCategory } from "../types/exercise.js";
 import type { ExerciseId } from "../types/identifiers.js";
 import type { IExerciseRepository } from "../repositories/ExerciseRepository.js";
 
-type CardioInput = Omit<CardioExercise, "id" | "pace">;
-type StrengthInput = Omit<StrengthExercise, "id">;
-type FlexibilityInput = Omit<FlexibilityExercise, "id">;
+type CardioInput = Omit<CardioExercise, "id" | "pace" | "completed" | "finalCaloriesBurned">;
+type StrengthInput = Omit<StrengthExercise, "id" | "completed" | "finalWeightLifted">;
+type FlexibilityInput = Omit<FlexibilityExercise, "id" | "completed" | "finalCommentsUser">;
 
 export type NewExerciseInput = CardioInput | StrengthInput | FlexibilityInput;
 
@@ -22,30 +22,38 @@ export class ExerciseService {
     this.repository = repository;
   }
 
-  public createExercise(data: NewExerciseInput): Exercise {
-    const newExercise = this.buildExercise(data);
+  public createExerciseTemplate(data: NewExerciseInput): Exercise {
+    const newExercise = this.buildExerciseTemplate(data);
     this.repository.save(newExercise);
     return newExercise;
   }
 
-  public getExercise(id: ExerciseId): Exercise | undefined {
+  public generateExercise(templateId: ExerciseId): Exercise | undefined {
+    const template = this.getExerciseTemplate(templateId);
+    if (!template) {
+      return undefined;
+    }
+    return structuredClone(template);
+  }
+
+  public getExerciseTemplate(id: ExerciseId): Exercise | undefined {
     return this.repository.findById(id);
   }
 
-  public getAllExercises(): Exercise[] {
+  public getAllExerciseTemplates(): Exercise[] {
     return this.repository.findAll();
   }
 
-  private buildExercise(data: NewExerciseInput): Exercise {
+  private buildExerciseTemplate(data: NewExerciseInput): Exercise {
     const id = this.nextId();
 
     switch (data.category) {
       case ExerciseCategory.CARDIO:
-        return { ...data, id, pace: this.calculatePace(data) };
+        return { ...data, id, pace: this.calculatePace(data), completed: false, finalCaloriesBurned: 0 };
       case ExerciseCategory.STRENGTH:
-        return { ...data, id };
+        return { ...data, id, completed: false, finalWeightLifted: 0 };
       case ExerciseCategory.FLEXIBILITY:
-        return { ...data, id };
+        return { ...data, id, completed: false, finalCommentsUser: "" };
     }
   }
 

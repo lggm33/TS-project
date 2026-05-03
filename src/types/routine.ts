@@ -4,7 +4,8 @@ import type { RoutineId } from "./identifiers.js";
 interface DailyRoutine {
   id: RoutineId;
   day: string;
-  exercise: Exercise;
+  comments?: string;
+  exercises: Exercise[];
 }
 
 const WeekDay = {
@@ -21,6 +22,8 @@ type WeekDayType = (typeof WeekDay)[keyof typeof WeekDay];
 
 interface WeeklyRoutine {
   id: RoutineId;
+  start_date: Date;
+  rutine_name: string;
   plan: Partial<Record<WeekDayType, DailyRoutine>>;
 }
 

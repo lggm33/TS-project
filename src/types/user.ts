@@ -1,5 +1,5 @@
 import type { WeeklyRoutine } from "./routine.js";
-import type { UserId } from "./identifiers.js";
+import type { UserId} from "./identifiers.js";
 
 const UserLevel = {
   BEGINNER: 'principiante',
@@ -17,13 +17,19 @@ const MembershipPlan = {
 
 type MembershipPlanType = (typeof MembershipPlan)[keyof typeof MembershipPlan];
 
+type UserType = 'student' | 'trainer';
+
 interface PersonalData {
   name: string;
   email: string;
+  gender: 'masculino' | 'femenino';
+  type: UserType;
+}
+
+interface StudentData extends PersonalData {
   age: number;
   weight: number;
   height: number;
-  gender: 'masculino' | 'femenino';
   goal: 'perder peso' | 'ganar peso' | 'mantener peso';
   level: UserLevelType;
 }
@@ -34,18 +40,30 @@ interface Membership {
   active: boolean;
 }
 
-interface User {
+interface Student {
   id: UserId;
-  personal: PersonalData;
+  personal: StudentData;
   membership: Membership;
   routine: WeeklyRoutine;
 }
 
+interface Trainer {
+  id: UserId;
+  personal: PersonalData;
+  users_assigned: UserId[];
+}
+
+type User = Student | Trainer;
+
 export { UserLevel, MembershipPlan };
 export type {
-  User,
+  Student,
+  StudentData,
+  Trainer,
   PersonalData,
   Membership,
   UserLevelType,
   MembershipPlanType,
+  UserType,
+  User
 };
