@@ -123,6 +123,7 @@ export class MenuController {
       ],
     }) as UserType;
     const name = await input({ message: "Nombre del usuario:" });
+    const age = await this.askPositiveNumber("Edad:");
     const email = await input({ message: "Email del usuario:" });
     
     const gender = await select<Gender>({
@@ -133,7 +134,7 @@ export class MenuController {
       ],
     });
 
-    return { name, email, gender, type };
+    return { name, age, email, gender, type };
   }
 
   private async studentLoginPrompt(): Promise<void> {
@@ -300,9 +301,9 @@ export class MenuController {
 
     let exit = false;
     while (!exit) {
-      const selectedDay = await select({
+      const selectedDay = await select<WeekDayType | "back">({
         message: "Seleccione un día para gestionar:",
-        choices: [...days, { name: "⬅️ Volver", value: "back" as any }],
+        choices: [...days, { name: "⬅️ Volver", value: "back" }],
       });
 
       if (selectedDay === "back") {
@@ -310,7 +311,7 @@ export class MenuController {
         continue;
       }
 
-      const dailyRoutine = student.routine.plan[selectedDay as WeekDayType]!;
+      let dailyRoutine = student.routine.plan[selectedDay as WeekDayType]!;
       
       let backDay = false;
       while (!backDay) {
@@ -332,8 +333,23 @@ export class MenuController {
             const currentComment = dailyRoutine.comments || "";
             console.log(`Comentario actual: ${currentComment ? currentComment : "(Ninguno)"}`);
             const newComment = await input({ message: "Nuevo comentario:" });
-            dailyRoutine.comments = newComment;
-            this.userService.updateUser(student);
+            
+            const updatedStudent = {
+              ...student,
+              routine: {
+                ...student.routine,
+                plan: {
+                  ...student.routine.plan,
+                  [selectedDay]: {
+                    ...dailyRoutine,
+                    comments: newComment,
+                  }
+                }
+              }
+            };
+            this.userService.updateUser(updatedStudent);
+            student = updatedStudent;
+            dailyRoutine = student.routine.plan[selectedDay as WeekDayType]!;
             console.log("\n✅ Comentario guardado.\n");
             break;
           }
@@ -357,19 +373,39 @@ export class MenuController {
                 message: `¿Marcar "${ex.name}" como completado?`,
                 default: ex.completed,
               });
-              ex.completed = isCompleted;
+              
+              const updatedEx = { ...ex, completed: isCompleted };
               
               if (isCompleted) {
-                 if (ex.category === 'fuerza') {
-                   const weight = await this.askPositiveNumber(`Peso final levantado (kg) [Sugerido: ${ex.weight}]:`);
-                   ex.finalWeightLifted = weight;
-                 } else if (ex.category === 'cardio') {
-                   const cals = await this.askPositiveNumber(`Calorías finales quemadas [Sugeridas: ${ex.caloriesPerMinute * ex.duration}]:`);
-                   ex.finalCaloriesBurned = cals;
+                 if (updatedEx.category === 'fuerza') {
+                   const weight = await this.askPositiveNumber(`Peso final levantado (kg) [Sugerido: ${updatedEx.weight}]:`);
+                   updatedEx.finalWeightLifted = weight;
+                 } else if (updatedEx.category === 'cardio') {
+                   const cals = await this.askPositiveNumber(`Calorías finales quemadas [Sugeridas: ${updatedEx.caloriesPerMinute * updatedEx.duration}]:`);
+                   updatedEx.finalCaloriesBurned = cals;
                  }
               }
 
-              this.userService.updateUser(student);
+              const updatedExercises = [...dailyRoutine.exercises];
+              updatedExercises[exIndex] = updatedEx;
+
+              const updatedStudent = {
+                ...student,
+                routine: {
+                  ...student.routine,
+                  plan: {
+                    ...student.routine.plan,
+                    [selectedDay]: {
+                      ...dailyRoutine,
+                      exercises: updatedExercises,
+                    }
+                  }
+                }
+              };
+
+              this.userService.updateUser(updatedStudent);
+              student = updatedStudent;
+              dailyRoutine = student.routine.plan[selectedDay as WeekDayType]!;
               console.log("\n✅ Estado del ejercicio actualizado.\n");
             }
             break;
@@ -380,7 +416,6 @@ export class MenuController {
   }
 
   private async collectStudentPersonalData(basePersonalData: PersonalData): Promise<StudentData> {
-    const age = await this.askPositiveNumber("Edad:");
     const weight = await this.askPositiveNumber("Peso (kg):");
     const height = await this.askPositiveNumber("Altura (m):");
 
@@ -402,7 +437,7 @@ export class MenuController {
       ],
     })
 
-    return { ...basePersonalData, age, weight, height, goal, level };
+    return { ...basePersonalData, weight, height, goal, level };
   }
 
   private async collectMembershipData(): Promise<Membership> {

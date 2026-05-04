@@ -32,19 +32,28 @@ export class RoutineService {
       return false;
     }
 
-    let dailyRoutine = user.routine.plan[day];
+    const currentPlan = user.routine.plan;
+    const dailyRoutine = currentPlan[day] || {
+      id: this.nextRoutineId(),
+      day: day,
+      exercises: [],
+    };
 
-    if (!dailyRoutine) {
-      dailyRoutine = {
-        id: this.nextRoutineId(),
-        day: day,
-        exercises: [],
-      };
-      user.routine.plan[day] = dailyRoutine;
-    }
+    const updatedUser = {
+      ...user,
+      routine: {
+        ...user.routine,
+        plan: {
+          ...currentPlan,
+          [day]: {
+            ...dailyRoutine,
+            exercises: [...dailyRoutine.exercises, exercise],
+          }
+        }
+      }
+    };
 
-    dailyRoutine.exercises.push(exercise);
-    this.userService.updateUser(user);
+    this.userService.updateUser(updatedUser);
 
     return true;
   }

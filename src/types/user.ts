@@ -21,13 +21,13 @@ type UserType = 'student' | 'trainer';
 
 interface PersonalData {
   name: string;
+  age: number;
   email: string;
   gender: 'masculino' | 'femenino';
   type: UserType;
 }
 
 interface StudentData extends PersonalData {
-  age: number;
   weight: number;
   height: number;
   goal: 'perder peso' | 'ganar peso' | 'mantener peso';
