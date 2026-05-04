@@ -70,8 +70,12 @@ export class UserService {
     if (!('users_assigned' in trainer)) {
       return false;
     }
-    trainer.users_assigned.push(userId);
-    this.updateUser(trainer);
+    const updatedTrainer = {
+      ...trainer,
+      users_assigned: [...trainer.users_assigned, userId],
+    };
+    
+    this.updateUser(updatedTrainer);
     return true;
   }
 
