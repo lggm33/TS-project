@@ -9,6 +9,7 @@ import type {
 } from "../types/user.js";
 import type { UserId, RoutineId } from "../types/identifiers.js";
 import type { IUserRepository } from "../repositories/UserRepository.js";
+import { isStudent, isTrainer } from "../utils/typeGuards.js";
 
 export interface NewStudentInput {
   personal: StudentData;
@@ -80,14 +81,23 @@ export class UserService {
   }
 
   public getUser(id: UserId): User | undefined {
+    return this.repository.findById(id);
+  }
+
+  public getStudent(id: UserId): Student | undefined {
     const user = this.repository.findById(id);
-    if (!user) {
-      return undefined;
+    if (user && isStudent(user)) {
+      return user;
     }
-    if (user.personal.type === 'student') {
-      return user as Student;
+    return undefined;
+  }
+
+  public getTrainer(id: UserId): Trainer | undefined {
+    const user = this.repository.findById(id);
+    if (user && isTrainer(user)) {
+      return user;
     }
-    return user as Trainer;
+    return undefined;
   }
 
   public getAllUsers(type?: UserType): User[] {

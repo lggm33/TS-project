@@ -115,13 +115,13 @@ export class MenuController {
   }
 
   private async collectBasePersonalDataPrompt(): Promise<PersonalData> {
-    const type = await select({
+    const type = await select<UserType>({
       message: "Seleccione el tipo de usuario:",
       choices: [
         { name: "Estudiante", value: "student" },
         { name: "Entrenador", value: "trainer" },
       ],
-    }) as UserType;
+    });
     const name = await input({ message: "Nombre del usuario:" });
     const age = await this.askPositiveNumber("Edad:");
     const email = await input({ message: "Email del usuario:" });
@@ -151,7 +151,7 @@ export class MenuController {
       choices: students.map((s) => ({ name: s.personal.name, value: s.id })),
     });
 
-    const student = this.userService.getUser(studentId) as Student;
+    const student = this.userService.getStudent(studentId);
     if (!student) {
       console.log("❌ Estudiante no encontrado.");
       return;
@@ -172,7 +172,11 @@ export class MenuController {
       choices: trainers.map((t) => ({ name: t.personal.name, value: t.id })),
     });
 
-    const trainer = this.userService.getUser(trainerId) as Trainer;
+    const trainer = this.userService.getTrainer(trainerId);
+    if (!trainer) {
+      console.log("❌ Entrenador no encontrado.");
+      return;
+    }
     await this.trainerMenu(trainer);
   }
   
@@ -290,9 +294,12 @@ export class MenuController {
   }
 
   private async manageRoutinePrompt(student: Student): Promise<void> {
-    const days = Object.entries(student.routine.plan)
-      .filter(([_, daily]) => daily !== undefined && daily.exercises.length > 0)
-      .map(([day, _]) => ({ name: capitalizeString(day), value: day as WeekDayType }));
+    const days = Object.values(WeekDay)
+      .filter((day) => {
+        const daily = student.routine.plan[day];
+        return daily !== undefined && daily.exercises.length > 0;
+      })
+      .map((day) => ({ name: capitalizeString(day), value: day }));
 
     if (days.length === 0) {
       console.log("❌ No tienes días con ejercicios en tu rutina.");
@@ -311,7 +318,7 @@ export class MenuController {
         continue;
       }
 
-      let dailyRoutine = student.routine.plan[selectedDay as WeekDayType]!;
+      let dailyRoutine = student.routine.plan[selectedDay]!;
       
       let backDay = false;
       while (!backDay) {
@@ -349,7 +356,7 @@ export class MenuController {
             };
             this.userService.updateUser(updatedStudent);
             student = updatedStudent;
-            dailyRoutine = student.routine.plan[selectedDay as WeekDayType]!;
+            dailyRoutine = student.routine.plan[selectedDay]!;
             console.log("\n✅ Comentario guardado.\n");
             break;
           }
@@ -405,7 +412,7 @@ export class MenuController {
 
               this.userService.updateUser(updatedStudent);
               student = updatedStudent;
-              dailyRoutine = student.routine.plan[selectedDay as WeekDayType]!;
+              dailyRoutine = student.routine.plan[selectedDay]!;
               console.log("\n✅ Estado del ejercicio actualizado.\n");
             }
             break;
