@@ -1,10 +1,17 @@
-import { select, input, confirm } from "@inquirer/prompts";
+import { select, input, confirm, checkbox } from "@inquirer/prompts";
 import type { UserService } from "../services/UserService.js";
-import type { ExerciseService, NewExerciseInput } from "../services/ExerciseService.js";
+import type { ExerciseService, NewExerciseInput, InvalidExercise } from "../services/ExerciseService.js";
 import type { RoutineService } from "../services/RoutineService.js";
-import { WeekDay } from "../types/routine.js";
-import type { WeekDayType } from "../types/routine.js";
+import {
+  WeekDay,
+  ExerciseCategory,
+  WorkoutStatus,
+  MuscleGroupOptions,
+  ApiDifficultyLabel,
+} from "../types/index.js";
 import type {
+  Exercise,
+  WeekDayType,
   PersonalData,
   Membership,
   UserLevelType,
@@ -13,13 +20,16 @@ import type {
   User,
   Student,
   Trainer,
-  StudentData
-} from "../types/user.js";
-import { ExerciseCategory } from "../types/exercise.js";
-import type { ExerciseCategoryType } from "../types/exercise.js";
+  StudentData,
+  ExerciseCategoryType,
+  WorkoutStatusType,
+  UserId,
+} from "../types/index.js";
 import { ProfilePresenter } from "./ProfilePresenter.js";
 import { CatalogPresenter } from "./CatalogPresenter.js";
 import { formatDuration, capitalizeString } from "../utils/formatters.js";
+import { getRawName } from "../utils/typeGuards.js";
+import { assertNever } from "../utils/assertions.js";
 
 type Gender = PersonalData["gender"];
 type Goal = StudentData["goal"];
@@ -218,15 +228,24 @@ export class MenuController {
     }
   }
 
-  private async trainerMenu(trainer: Trainer): Promise<void> {
-    console.log(`\n👋 Bienvenido ${trainer.personal.name}!`);
+  private async trainerMenu(initialTrainer: Trainer): Promise<void> {
+    console.log(`\n👋 Bienvenido ${initialTrainer.personal.name}!`);
+    let trainer = initialTrainer;
     let exit = false;
     while (!exit) {
+      const refreshed = this.userService.getTrainer(trainer.id);
+      if (refreshed) {
+        trainer = refreshed;
+      }
+
       const options = await select({
         message: "¿Qué desea hacer?",
         choices: [
           { name: "Ver perfil y usuarios asignados", value: "view_profile_and_users_assigned" },
+          { name: "Asignar estudiante", value: "assign_student" },
           { name: "Crear ejercicio", value: "create_exercise" },
+          { name: "Buscar ejercicios externos", value: "search_exercises" },
+          { name: "Generar reporte unificado", value: "unified_report" },
           { name: "Cerrar sesión", value: "exit" },
         ],
       });
@@ -235,14 +254,46 @@ export class MenuController {
         case "view_profile_and_users_assigned":
           await ProfilePresenter.printTrainerProfile(trainer, this.userService);
           break;
+        case "assign_student":
+          await this.assignStudentPrompt(trainer.id);
+          break;
         case "create_exercise":
           await this.createExercisePrompt();
+          break;
+        case "search_exercises":
+          await this.searchExercisesPrompt();
+          break;
+        case "unified_report":
+          await this.unifiedReportPrompt();
           break;
         case "exit":
           exit = true;
           console.log("\n¡Cerrando sesión...\n");
           break;
       }
+    }
+  }
+
+  private async assignStudentPrompt(trainerId: UserId): Promise<void> {
+    const students = this.userService.getAllUsers("student");
+
+    if (students.length === 0) {
+      console.log("\n❌ No hay estudiantes registrados en el sistema.\n");
+      return;
+    }
+
+    const studentId = await select({
+      message: "Selecciona el estudiante a asignar:",
+      choices: students.map((s) => ({ name: s.personal.name, value: s.id })),
+    });
+
+    const success = this.userService.assignUserToTrainer(trainerId, studentId);
+
+    if (success) {
+      const student = this.userService.getStudent(studentId);
+      console.log(`\n✅ ${student?.personal.name} asignado correctamente.\n`);
+    } else {
+      console.log("\n❌ No se pudo asignar el estudiante.\n");
     }
   }
 
@@ -267,6 +318,108 @@ export class MenuController {
 
     const newExercise = this.exerciseService.createExerciseTemplate(exerciseInput);
     console.log(`\n✅ Ejercicio ${newExercise.name} (${newExercise.category}) creado con éxito.\n`);
+  }
+
+  private async searchExercisesPrompt(): Promise<void> {
+    const category = await select<ExerciseCategoryType>({
+      message: "¿Qué tipo de ejercicio buscas?",
+      choices: [
+        { name: "🏃 Cardio", value: ExerciseCategory.CARDIO },
+        { name: "💪 Fuerza", value: ExerciseCategory.STRENGTH },
+        { name: "🧘 Flexibilidad", value: ExerciseCategory.FLEXIBILITY },
+      ],
+    });
+
+    const selectedMuscle = await select({
+      message: "Selecciona un grupo muscular:",
+      choices: MuscleGroupOptions.map((m) => ({ name: m.name, value: m.value })),
+    });
+
+    console.log(`\n🔍 Buscando ejercicios para "${selectedMuscle}"...\n`);
+
+    const catalogCountBefore = this.exerciseService.getAllExerciseTemplates().length;
+
+    let result;
+    try {
+      result = await this.exerciseService.searchByMuscle(selectedMuscle);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error desconocido";
+      console.log(`\n❌ No se pudo conectar con la fuente externa: ${message}`);
+      console.log("El catálogo local sigue disponible.\n");
+      return;
+    }
+
+    if (result.valid.length === 0 && result.invalid.length === 0) {
+      console.log("No se encontraron ejercicios para ese grupo muscular.\n");
+      return;
+    }
+
+    if (result.valid.length === 0) {
+      this.printSearchResults(selectedMuscle, [], result.invalid, catalogCountBefore);
+      return;
+    }
+
+    const selected = await checkbox({
+      message: `Se encontraron ${result.valid.length} ejercicio(s) válidos. Selecciona los que deseas agregar al catálogo:`,
+      choices: result.valid.map((ex) => ({
+        name: `${ex.name} (${ex.type} · ${ApiDifficultyLabel[ex.difficulty] ?? ex.difficulty})`,
+        value: ex,
+      })),
+    });
+
+    const addedExercises: Exercise[] = [];
+
+    for (const ex of selected) {
+      console.log(`\n📝 Completa los datos para "${ex.name}":`);
+      const duration = await this.askPositiveNumber("Duración (minutos):");
+      const caloriesPerMinute = await this.askPositiveNumber("Calorías por minuto:");
+      const exerciseInput = await this.collectExerciseSpecificData(category, {
+        name: ex.name,
+        duration,
+        caloriesPerMinute,
+      });
+      const newExercise = this.exerciseService.createExerciseTemplate(exerciseInput);
+      addedExercises.push(newExercise);
+    }
+
+    this.printSearchResults(selectedMuscle, addedExercises, result.invalid, catalogCountBefore);
+  }
+
+  private printSearchResults(
+    muscle: string,
+    addedExercises: Exercise[],
+    invalidExercises: InvalidExercise[],
+    catalogCountBefore: number,
+  ): void {
+    const TOP_SEPARATOR = '══════════════════════════════════';
+    console.log(`\n📊 Resultados de búsqueda, muscle: ${muscle}`);
+    console.log(TOP_SEPARATOR);
+
+    if (addedExercises.length > 0) {
+      console.log(`✅ Agregados al catálogo (${addedExercises.length})`);
+      for (const exercise of addedExercises) {
+        const namePart = exercise.name.padEnd(15);
+        const categoryPart = exercise.category.padEnd(12);
+        console.log(`   ${namePart}, ${categoryPart}| validado`);
+      }
+    }
+
+    if (invalidExercises.length > 0) {
+      console.log(`⚠️  Datos incompletos (${invalidExercises.length})`);
+      for (const item of invalidExercises) {
+        const name = getRawName(item.raw);
+        console.log(`   ${name.padEnd(15)}, ${item.reason}`);
+      }
+    }
+
+    console.log(`Catálogo local: ${catalogCountBefore} ejercicios | Desde API: ${addedExercises.length} ejercicios`);
+    console.log(TOP_SEPARATOR + "\n");
+  }
+
+  private async unifiedReportPrompt(): Promise<void> {
+    const exercises = this.exerciseService.getAllExerciseTemplates();
+    const invalids = [...this.exerciseService.getInvalidHistory()];
+    CatalogPresenter.printUnifiedReport(exercises, invalids);
   }
 
   private async addExercisePrompt(student: Student): Promise<void> {
@@ -329,8 +482,8 @@ export class MenuController {
       while (!backDay) {
         console.log(`\n📋 Ejercicios del ${capitalizeString(selectedDay)}:`);
         for (const ex of dailyRoutine.exercises) {
-          const status = ex.completed ? '✅' : '❌';
-          console.log(`  ${status} ${ex.name} [${ex.category}] - ${ex.duration} min`);
+          const statusIcon = ProfilePresenter.getStatusIcon(ex.status);
+          console.log(`  ${statusIcon} ${ex.name} [${ex.category}] - ${ex.duration} min`);
         }
         if (dailyRoutine.comments) {
           console.log(`  💬 "${dailyRoutine.comments}"`);
@@ -340,7 +493,7 @@ export class MenuController {
         const action = await select({
           message: `Gestionando el día ${capitalizeString(selectedDay)}:`,
           choices: [
-            { name: "Marcar ejercicios completados", value: "exercises" },
+            { name: "Cambiar estado de ejercicio", value: "exercises" },
             { name: "Dejar/Editar comentario del día", value: "comment" },
             { name: "⬅️ Volver", value: "back" },
           ],
@@ -378,7 +531,7 @@ export class MenuController {
             
           case "exercises": {
             const exerciseChoices = dailyRoutine.exercises.map((ex, index) => ({
-              name: `${ex.completed ? '✅' : '❌'} ${ex.name} [${ex.category}]`,
+              name: `${ProfilePresenter.getStatusIcon(ex.status)} ${ex.name} [${ex.category}]`,
               value: index,
             }));
 
@@ -391,14 +544,19 @@ export class MenuController {
               const ex = dailyRoutine.exercises[exIndex];
               if (!ex) break;
 
-              const isCompleted = await confirm({
-                message: `¿Marcar "${ex.name}" como completado?`,
-                default: ex.completed,
+              const newStatus = await select<WorkoutStatusType>({
+                message: `Estado de "${ex.name}":`,
+                choices: [
+                  { name: "⏳ Pendiente", value: WorkoutStatus.PENDING },
+                  { name: "✅ Completado", value: WorkoutStatus.COMPLETED },
+                  { name: "⏭️  Saltado", value: WorkoutStatus.SKIPPED },
+                ],
+                default: ex.status,
               });
               
-              const updatedEx = { ...ex, completed: isCompleted };
+              const updatedEx = { ...ex, status: newStatus };
               
-              if (isCompleted) {
+              if (newStatus === WorkoutStatus.COMPLETED) {
                  if (updatedEx.category === 'fuerza') {
                    const weight = await this.askPositiveNumber(`Peso final levantado (kg) [Sugerido: ${updatedEx.weight}]:`);
                    updatedEx.finalWeightLifted = weight;
@@ -519,6 +677,8 @@ export class MenuController {
           poses,
         };
       }
+      default:
+        return assertNever(category);
     }
   }
 

@@ -6,6 +6,14 @@ import type {
 } from "../types/exercise.js";
 import { ExerciseCategory } from "../types/exercise.js";
 import type { DailyRoutine, WeeklyRoutine } from "../types/routine.js";
+import { assertNever } from "./assertions.js";
+
+type WeeklyEntry = [string, DailyRoutine | undefined];
+type WeeklyDefinedEntry = [string, DailyRoutine];
+
+function isDefinedEntry(entry: WeeklyEntry): entry is WeeklyDefinedEntry {
+  return entry[1] !== undefined;
+}
 
 export interface ExercisesByCategory {
   cardio: CardioExercise[];
@@ -59,9 +67,7 @@ export function calculateWeeklyCalories(routine: WeeklyRoutine): number {
 export function getHighestCalorieDay(
   routine: WeeklyRoutine,
 ): { day: string; calories: number } | null {
-  const entries = Object.entries(routine.plan).filter(
-    ([, r]) => r !== undefined,
-  ) as [string, DailyRoutine][];
+  const entries: WeeklyDefinedEntry[] = Object.entries(routine.plan).filter(isDefinedEntry);
 
   if (entries.length === 0) {
     return null;
@@ -99,6 +105,8 @@ export function groupByCategory(exercises: Exercise[]): ExercisesByCategory {
       case ExerciseCategory.FLEXIBILITY:
         groups.flexibility.push(exercise);
         break;
+      default:
+        assertNever(exercise);
     }
   }
 

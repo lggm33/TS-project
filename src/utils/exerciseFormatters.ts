@@ -6,6 +6,7 @@ import type {
 } from "../types/exercise.js";
 import { ExerciseCategory } from "../types/exercise.js";
 import { calculateTotalCalories } from "./calculations.js";
+import { assertNever } from "./assertions.js";
 
 const CATEGORY_LABELS: Readonly<Record<Exercise["category"], { emoji: string; label: string }>> = {
   cardio: { emoji: '🏃', label: 'Cardio' },
@@ -21,6 +22,21 @@ export function describeExercise(exercise: Exercise): string {
       return describeStrength(exercise);
     case ExerciseCategory.FLEXIBILITY:
       return describeFlexibility(exercise);
+    default:
+      return assertNever(exercise);
+  }
+}
+
+export function describeExerciseReport(exercise: Exercise): string {
+  switch (exercise.category) {
+    case ExerciseCategory.CARDIO:
+      return describeCardioReport(exercise);
+    case ExerciseCategory.STRENGTH:
+      return describeStrengthReport(exercise);
+    case ExerciseCategory.FLEXIBILITY:
+      return describeFlexibilityReport(exercise);
+    default:
+      return assertNever(exercise);
   }
 }
 
@@ -41,6 +57,22 @@ function describeStrength(exercise: StrengthExercise): string {
 function describeFlexibility(exercise: FlexibilityExercise): string {
   const totalCalories = calculateTotalCalories(exercise);
   return `${exercise.name}, ${exercise.poses} poses | ${totalCalories} kcal`;
+}
+
+function describeCardioReport(exercise: CardioExercise): string {
+  if (exercise.pace > 0) {
+    return `${exercise.name}, ${exercise.duration} min | Ritmo: ${formatPace(exercise.pace)} min/km`;
+  }
+  return `${exercise.name}, ${exercise.duration} min | Distancia: ${formatDistance(exercise.distance)} km`;
+}
+
+function describeStrengthReport(exercise: StrengthExercise): string {
+  const volume = exercise.sets * exercise.reps * exercise.weight;
+  return `${exercise.name}, ${exercise.duration} min | Volumen: ${volume} kg`;
+}
+
+function describeFlexibilityReport(exercise: FlexibilityExercise): string {
+  return `${exercise.name}, ${exercise.duration} min | ${exercise.poses} poses`;
 }
 
 function formatDistance(distanceKm: number): string {

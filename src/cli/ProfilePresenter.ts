@@ -1,6 +1,8 @@
 import type { UserService } from "../services/UserService.js";
-import type { User, Exercise, Student, Trainer } from "../types/index.js";
+import type { User, Exercise, Student, Trainer, WorkoutStatusType } from "../types/index.js";
+import { WorkoutStatus } from "../types/index.js";
 import { isStudent } from "../utils/typeGuards.js";
+import { assertNever } from "../utils/assertions.js";
 import {
   calculateDailyCalories,
   calculateWeeklyCalories,
@@ -110,7 +112,7 @@ export class ProfilePresenter {
 
       console.log(`${capitalizedDay}:`);
       for (const ex of exercises) {
-        const statusIcon = ex.completed ? '✅' : '❌';
+        const statusIcon = ProfilePresenter.getStatusIcon(ex.status);
         let extraInfo = '';
         
         if (ex.category === 'fuerza' && 'finalWeightLifted' in ex) {
@@ -160,5 +162,18 @@ export class ProfilePresenter {
       return 0;
     }
     return Math.round(total / days);
+  }
+
+  public static getStatusIcon(status: WorkoutStatusType): string {
+    switch (status) {
+      case WorkoutStatus.PENDING:
+        return '⏳';
+      case WorkoutStatus.COMPLETED:
+        return '✅';
+      case WorkoutStatus.SKIPPED:
+        return '⏭️';
+      default:
+        return assertNever(status);
+    }
   }
 }
