@@ -2,6 +2,7 @@ import type { UserService } from "./UserService.js";
 import type { ExerciseService } from "./ExerciseService.js";
 import type { WeekDayType, DailyRoutine } from "../types/routine.js";
 import type { UserId, ExerciseId, RoutineId } from "../types/identifiers.js";
+import { isStudent } from "../utils/typeGuards.js";
 
 export class RoutineService {
   private userService: UserService;
@@ -18,17 +19,10 @@ export class RoutineService {
     exerciseId: ExerciseId,
     day: WeekDayType,
   ): boolean {
-    const user = this.userService.getUser(userId);
+    const user = this.userService.getStudent(userId);
     const exercise = this.exerciseService.generateExercise(exerciseId);
 
     if (!user || !exercise) {
-      return false;
-    }
-
-    if (user?.personal.type != 'student') {
-      return false;
-    }
-    if (!('routine' in user)) {
       return false;
     }
 

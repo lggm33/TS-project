@@ -180,11 +180,16 @@ export class MenuController {
     await this.trainerMenu(trainer);
   }
   
-  private async studentMenu(student: Student): Promise<void> {
-
-    console.log(`\n👋 Bienvenido ${student.personal.name}!`);
+  private async studentMenu(initialStudent: Student): Promise<void> {
+    console.log(`\n👋 Bienvenido ${initialStudent.personal.name}!`);
+    let student = initialStudent;
     let exit = false;
     while (!exit) {
+      const refreshed = this.userService.getStudent(student.id);
+      if (refreshed) {
+        student = refreshed;
+      }
+
       const options = await select({
         message: "¿Qué desea hacer?",
         choices: [
@@ -322,6 +327,16 @@ export class MenuController {
       
       let backDay = false;
       while (!backDay) {
+        console.log(`\n📋 Ejercicios del ${capitalizeString(selectedDay)}:`);
+        for (const ex of dailyRoutine.exercises) {
+          const status = ex.completed ? '✅' : '❌';
+          console.log(`  ${status} ${ex.name} [${ex.category}] - ${ex.duration} min`);
+        }
+        if (dailyRoutine.comments) {
+          console.log(`  💬 "${dailyRoutine.comments}"`);
+        }
+        console.log();
+
         const action = await select({
           message: `Gestionando el día ${capitalizeString(selectedDay)}:`,
           choices: [
