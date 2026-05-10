@@ -1,5 +1,6 @@
 import type { UserService } from "../services/UserService.js";
 import type { User, Exercise, Student, Trainer } from "../types/index.js";
+import { isStudent } from "../utils/typeGuards.js";
 import {
   calculateDailyCalories,
   calculateWeeklyCalories,
@@ -27,8 +28,8 @@ export class ProfilePresenter {
 
     for (const userId of users_assigned) {
       const assignedUser = userService.getUser(userId);
-      if (assignedUser && assignedUser.personal.type === 'student') {
-        const student = assignedUser as Student;
+      if (assignedUser && isStudent(assignedUser)) {
+        const student = assignedUser;
         const routine = student.routine;
         const trainedDays = ProfilePresenter.collectTrainedDays(routine);
         
