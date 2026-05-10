@@ -1,86 +1,160 @@
 # Routine Management CLI
 
-A command-line interface (CLI) application to manage users, exercises, and fitness routines for the FitTracker domain. Built with TypeScript and Node.js.
+A command-line interface (CLI) application to manage users, exercises, and fitness routines for the FitTracker domain. Built with TypeScript and Node.js. Includes integration with the [api-ninjas exercises API](https://api-ninjas.com/api/exercises) to fetch exercises from an external source.
+
+## Features
+
+- **Two user roles**: students (own a routine) and trainers (manage students and the exercise catalog).
+- **Discriminated exercise model**: each exercise belongs to one of three categories — `cardio`, `fuerza`, or `flexibilidad` — and only the relevant fields are accessible per category, enforced by the compiler.
+- **Workout state machine**: each exercise inside a routine carries one of three statuses — `pendiente`, `completado`, `saltado` — typed as a literal union.
+- **External search by muscle group**: trainers can query api-ninjas for exercises by muscle and decide which ones to add to the local catalog.
+- **Validation pipeline with Zod**: external exercises are parsed against a strict schema; anything that fails is surfaced to the user as "datos incompletos" instead of being silently dropped or accepted.
+- **Unified report**: combines local exercises and exercises imported from the API, grouped by category, with invalid entries reported separately.
+- **Graceful network failure**: if the external API is unreachable or returns an error, the user is informed and the local catalog keeps working.
 
 ## Architecture
 
-The project follows SOLID and DRY principles, organized into four main layers:
+The project follows SOLID and DRY principles, organized into the following layers:
 
-1. **Types Layer (`src/types`)**: Domain types including the discriminated union for `Ejercicio` (cardio / fuerza / flexibilidad), the composite `Usuario` (personal data + membership), routine types, and shared identifier aliases (`EjercicioId`, `UsuarioId`, `RutinaId`).
-2. **Data Layer (`src/repositories`)**: In-memory storage for users and exercises. Data is reset upon application restart.
-3. **Service Layer (`src/services`)**: Business logic — `UserService`, `ExerciseService` (derives `ritmo` automatically for cardio), `RoutineService`.
-4. **Presentation Layer (`src/cli`)**: Interactive prompts using `@inquirer/prompts`, plus presenters for the user profile and the category-grouped catalog.
+1. **Types Layer (`src/types`)**
+   - `exercise.ts` — discriminated union `Exercise = CardioExercise | StrengthExercise | FlexibilityExercise`, plus the `WorkoutStatus` literal union.
+   - `external.ts` — Zod schema `ApiNinjasExerciseSchema` describing the raw shape returned by the external API.
+   - `user.ts`, `routine.ts`, `identifiers.ts` — supporting domain types.
+2. **Repository Layer (`src/repositories`)** — In-memory storage for users and exercises. Data is reset on restart.
+3. **Service Layer (`src/services`)**
+   - `UserService` — student and trainer management, assignment.
+   - `ExerciseService` — local catalog operations, external search orchestration, validation with Zod, and accumulation of invalid items across the session.
+   - `RoutineService` — assigning exercises to specific days of a student's routine.
+4. **Client Layer (`src/clients`)** — `ExerciseApiClient`, thin HTTP wrapper around api-ninjas. Reads the API key from `process.env.API_NINJAS_KEY`; no secret is hardcoded.
+5. **Presentation Layer (`src/cli`)** — Interactive prompts via `@inquirer/prompts`. Includes `MenuController`, `ProfilePresenter`, and `CatalogPresenter` (catalog, counters, unified report).
+6. **Utilities (`src/utils`)**
+   - `assertions.ts` — `assertNever` helper used in switch defaults to enforce exhaustive handling of discriminated unions at compile time.
+   - `typeGuards.ts` — runtime guards for `Student`/`Trainer` plus the safe `getRawName` helper used when displaying invalid external entries.
+   - `calculations.ts`, `exerciseFormatters.ts`, `formatters.ts` — domain math and presentation helpers.
+
+### Type safety guarantees
+
+- **No `as` casts** are used in the source (only `as const` for literal maps).
+- **No `any`** appears anywhere in `src/`.
+- **Exhaustive switches** over `Exercise["category"]` and `WorkoutStatusType` use `assertNever` so adding a new variant produces a compile error at every consumer.
+- **External data crosses the boundary through Zod**, never via type assertion.
 
 ### Exercise categories
 
-The `Ejercicio` type is a discriminated union with three variants. Each one has its own properties and the TypeScript compiler rejects accessing fields that do not belong to a given category:
+The `Exercise` type is a discriminated union; the compiler rejects accessing fields that do not belong to the active variant:
 
-- **Cardio** (`categoria: 'cardio'`): `distancia_recorrida` (km), `ritmo` (min/km, derived), `zona_frecuencia_cardiaca`.
-- **Fuerza** (`categoria: 'fuerza'`): `series`, `repeticiones`, `peso` (kg).
-- **Flexibilidad** (`categoria: 'flexibilidad'`): `numero_poses`.
+- **Cardio** (`category: 'cardio'`): `distance` (km), `pace` (min/km, derived), `heartRateZone`, `finalCaloriesBurned`.
+- **Fuerza** (`category: 'fuerza'`): `sets`, `reps`, `weight` (kg), `finalWeightLifted`.
+- **Flexibilidad** (`category: 'flexibilidad'`): `poses`, `finalCommentsUser`.
 
-The CLI flow asks for the category first and then only requests the fields that belong to it; an invalid combination cannot be constructed.
-
-### User profile
-
-A `Usuario` is composed by combining two grouped objects:
-
-- `personal`: `nombre`, `email`, `edad`, `peso`, `altura`, `sexo`, `objetivo`, `nivel` (literal: `principiante` | `intermedio` | `avanzado`).
-- `membresia`: `plan` (literal: `free` | `basic` | `premium`), `fecha_inicio`, `activa`.
+All variants share `id`, `name`, `duration`, `caloriesPerMinute`, and `status: WorkoutStatusType`.
 
 ## Prerequisites
 
-- Node.js
-- npm
+- Node.js 20+ (uses native `--env-file` flag and `fetch`).
+- npm.
+- An API key from [api-ninjas.com](https://api-ninjas.com/) (free tier works).
 
 ## Installation
-
-Install dependencies:
 
 ```bash
 npm install
 ```
 
-## Usage
+## Environment variables
 
-To run the interactive CLI:
+Create a `.env` file at the project root (already excluded from git via `.gitignore`):
+
+```
+API_NINJAS_KEY=your_api_key_here
+```
+
+If the key is missing, the app still runs — it simply disables the external search feature and warns at startup. The local catalog stays fully usable.
+
+## Usage
 
 ```bash
 npm run cli
 ```
 
-This command will compile the TypeScript code and start the interactive menu.
+This compiles the TypeScript code and starts the interactive menu.
 
 ### Available scripts
 
-- `npm run build` — Compile the TypeScript code to JavaScript.
-- `npm run cli` — Compile and run the interactive CLI menu.
-- `npm start` — Run the compiled JavaScript code from the `dist` folder.
+- `npm run build` — compile the TypeScript code to `dist/`.
+- `npm run cli` — compile and run the interactive CLI.
+- `npm start` — run the previously compiled output from `dist/`.
 
-### Menu options
+### Menu structure
 
-- **Agregar Usuario** — Create a user (personal data + membership).
-- **Agregar Ejercicio** — Choose category, then provide only the fields that match.
-- **Crear Rutina** — Assign an exercise to a user's day of the week.
-- **Ver Perfil** — Display the user's full profile (personal, membership, weekly routine).
-- **Ver Catálogo** — Show the catalog grouped by category, with subtotals of minutes and calories per type.
-- **Ver Contadores por Categoría** — Bonus: show only the count per category.
+Top-level prompt:
 
-## Expected catalog output
+- **Iniciar sesión** — log in as an existing student or trainer (seed data provides one of each).
+- **Registrarse** — create a new student or trainer.
+- **Salir**.
+
+Once logged in as a **student**:
+
+- Ver perfil.
+- Manejar rutina (cambiar estado de ejercicios por día, dejar comentarios).
+- Agregar ejercicio a la rutina.
+- Cerrar sesión.
+
+Once logged in as a **trainer**:
+
+- Ver perfil y usuarios asignados.
+- Asignar estudiante.
+- Crear ejercicio.
+- Buscar ejercicios externos (por grupo muscular, vía api-ninjas).
+- Generar reporte unificado.
+- Cerrar sesión.
+
+### External search flow
+
+1. Trainer picks a target category and a muscle group from a curated list.
+2. The service calls api-ninjas with `?muscle=<value>` and reads up to five results (also enforced client-side via a defensive `slice`).
+3. Each raw item is validated against `ApiNinjasExerciseSchema`.
+4. Valid items are presented for selection; the trainer fills in the local-specific data (duration, calories per minute, category-specific fields) for each one.
+5. Invalid items are listed in the search summary and accumulated for the unified report.
+
+## Expected outputs
+
+### Search summary
 
 ```
-📊 Catálogo de Ejercicios ══════════════════════════════════
-🏃 Cardio (2 ejercicios, 105 min, 1008 kcal)
-   Running, 45 min | 5.2 km | Ritmo: 8.65 min/km | 468 kcal
-   Cycling, 60 min | 20.0 km | Ritmo: 3.00 min/km | 540 kcal
-💪 Fuerza (1 ejercicio, 30 min, 300 kcal)
-   Bench Press, 4 series x 10 reps | 60 kg | 300 kcal
-🧘 Flexibilidad (1 ejercicio, 40 min, 160 kcal)
-   Yoga Flow, 12 poses | 160 kcal
-──────────────────────────────────
-Total: 4 ejercicios
+📊 Resultados de búsqueda, muscle: back
 ══════════════════════════════════
+✅ Agregados al catálogo (4)
+   Barbell Row    , fuerza      | validado
+   Pull-up        , fuerza      | validado
+   Seated Row     , fuerza      | validado
+   Lat Pulldown   , fuerza      | validado
+⚠️  Datos incompletos (1)
+   Cable Row      , campos requeridos faltantes
+Catálogo local: 4 ejercicios | Desde API: 4 ejercicios
+══════════════════════════════════
+```
+
+### Unified report
+
+```
+📊 Reporte por Tipo de Ejercicio
+══════════════════════════════════
+🏃 Cardio (2 ejercicios)
+   Running, 45 min | Ritmo: 8.65 min/km
+   Cycling, 60 min | Ritmo: 3.00 min/km
+💪 Fuerza (5 ejercicios)
+   Bench Press, 30 min | Volumen: 2400 kg
+   Barbell Row, 45 min | Volumen: 3200 kg
+   Pull-up, 30 min | Volumen: 800 kg
+   Seated Row, 40 min | Volumen: 1800 kg
+   Lat Pulldown, 35 min | Volumen: 1500 kg
+🧘 Flexibilidad (1 ejercicio)
+   Yoga Flow, 40 min | 12 poses
 ──────────────────────────────────
-👤 Usuario: Ana García, Nivel: intermediate | Membresía: premium
+Total: 8 ejercicios, 325 min
+
+⚠️  Ejercicios con datos incompletos (1):
+   Cable Row, campos requeridos faltantes
 ══════════════════════════════════
 ```

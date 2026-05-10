@@ -1,11 +1,14 @@
 import { WeekDay } from "./routine.js";
-import { ExerciseCategory } from "./exercise.js";
+import { ExerciseCategory, WorkoutStatus } from "./exercise.js";
 import { UserLevel, MembershipPlan } from "./user.js";
+import { ApiNinjasExerciseSchema, MuscleGroupOptions, ApiDifficultyLabel } from "./external.js";
 import type { WeeklyRoutine, DailyRoutine, WeekDayType } from "./routine.js";
 import type {
   Student,
   Trainer,
   Membership,
+  PersonalData,
+  StudentData,
   UserLevelType,
   MembershipPlanType,
   UserType,
@@ -18,10 +21,12 @@ import type {
   StrengthExercise,
   FlexibilityExercise,
   ExerciseCategoryType,
+  WorkoutStatusType,
 } from "./exercise.js";
 import type { ExerciseId, UserId, RoutineId } from "./identifiers.js";
+import type { ApiNinjasExercise } from "./external.js";
 
-export { WeekDay, ExerciseCategory, UserLevel, MembershipPlan };
+export { WeekDay, ExerciseCategory, WorkoutStatus, UserLevel, MembershipPlan, ApiNinjasExerciseSchema, MuscleGroupOptions, ApiDifficultyLabel };
 export type {
   Exercise,
   BaseExercise,
@@ -29,10 +34,13 @@ export type {
   StrengthExercise,
   FlexibilityExercise,
   ExerciseCategoryType,
+  WorkoutStatusType,
   WeeklyRoutine,
   DailyRoutine,
   WeekDayType,
   Membership,
+  PersonalData,
+  StudentData,
   Student,
   Trainer,
   UserLevelType,
@@ -42,4 +50,5 @@ export type {
   RoutineId,
   UserType,
   User,
+  ApiNinjasExercise,
 };

@@ -8,12 +8,20 @@ const ExerciseCategory = {
 
 type ExerciseCategoryType = (typeof ExerciseCategory)[keyof typeof ExerciseCategory];
 
+const WorkoutStatus = {
+  PENDING: 'pendiente',
+  COMPLETED: 'completado',
+  SKIPPED: 'saltado',
+} as const;
+
+type WorkoutStatusType = (typeof WorkoutStatus)[keyof typeof WorkoutStatus];
+
 interface BaseExercise {
   id: ExerciseId;
   name: string;
   duration: number;
   caloriesPerMinute: number;
-  completed: boolean;
+  status: WorkoutStatusType;
 }
 
 interface CardioExercise extends BaseExercise {
@@ -40,7 +48,7 @@ interface FlexibilityExercise extends BaseExercise {
 
 type Exercise = CardioExercise | StrengthExercise | FlexibilityExercise;
 
-export { ExerciseCategory };
+export { ExerciseCategory, WorkoutStatus };
 export type {
   Exercise,
   BaseExercise,
@@ -48,4 +56,5 @@ export type {
   StrengthExercise,
   FlexibilityExercise,
   ExerciseCategoryType,
+  WorkoutStatusType,
 };
